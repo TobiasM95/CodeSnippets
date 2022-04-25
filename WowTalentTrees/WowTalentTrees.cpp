@@ -25,7 +25,7 @@ struct TalentTree {
     std::string name = "defaultTree";
     int unspentTalentPoints = 30;
     int spentTalentPoints = 0;
-    std::vector<Talent*> talentRoots;
+    std::vector<std::shared_ptr<Talent>> talentRoots;
 };
 
 struct Talent {
@@ -35,31 +35,25 @@ struct Talent {
     int points = 0;
     int maxPoints = 0;
     int talentSwitch = -1;
-    std::vector<Talent*> parents;
-    std::vector<Talent*> children;
+    std::vector<std::shared_ptr<Talent>> parents;
+    std::vector<std::shared_ptr<Talent>> children;
 };
 
 struct TreeDAGInfo {
     std::vector<std::vector<int>> minimalTreeDAG;
-    std::vector<Talent*> sortedTalents;
+    std::vector<std::shared_ptr<Talent>> sortedTalents;
     std::vector<int> rootIndices;
 };
 
-void destroyTree(TreeDAGInfo treeDAGInfo) {
-    for (auto& talent : treeDAGInfo.sortedTalents) {
-        delete talent;
-    }
-}
-
-void addChild(Talent* parent, Talent* child) {
+void addChild(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child) {
     parent->children.push_back(child);
 }
 
-void addParent(Talent* child, Talent* parent) {
+void addParent(std::shared_ptr<Talent> child, std::shared_ptr<Talent> parent) {
     child->parents.push_back(parent);
 }
 
-void pairTalents(Talent* parent, Talent* child) {
+void pairTalents(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child) {
     parent->children.push_back(child);
     child->parents.push_back(parent);
 }
@@ -79,7 +73,7 @@ void printTree(TalentTree tree) {
     std::cout << getTalentString(tree) << std::endl;
 }
 
-void addTalentAndChildrenToMap(Talent* talent, std::unordered_map<std::string, int>& treeRepresentation) {
+void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_map<std::string, int>& treeRepresentation) {
     std::string talentName = talent->index;
     if (talent->talentSwitch >= 0) {
         talentName += std::to_string(talent->talentSwitch);
@@ -106,8 +100,8 @@ std::string unorderedMapToString(const std::unordered_map<std::string, int>& tre
     return treeString.str();
 }
 
-Talent* createTalent(std::string name, int maxPoints) {
-    Talent* talent = new Talent();
+std::shared_ptr<Talent> createTalent(std::string name, int maxPoints) {
+    std::shared_ptr<Talent> talent = std::make_shared<Talent>();
     talent->index = name;
     talent->maxPoints = maxPoints;
     return talent;
@@ -118,13 +112,13 @@ Tree representation string is of the format "NAME.TalentType:maxPoints(_ISSWITCH
 IMPORTANT: no error checking for strings and ISSWITCH is optional and indicates if it is a selection talent!
 */
 TalentTree parseTree(std::string treeRep) {
-    std::vector<Talent*> roots;
-    std::unordered_map<std::string, Talent*> talentTree;
+    std::vector<std::shared_ptr<Talent>> roots;
+    std::unordered_map<std::string, std::shared_ptr<Talent>> talentTree;
 
     std::vector<std::string> talentStrings = splitString(treeRep, ";");
 
     for (int i = 0; i < talentStrings.size(); i++) {
-        Talent* t = new Talent();
+        std::shared_ptr<Talent> t = std::make_shared<Talent>();
         std::string talentInfo = talentStrings[i];
         std::string talentName = talentInfo.substr(0, talentInfo.find("."));
         int talentType = std::stoi(talentInfo.substr(talentInfo.find(".") + 1, 1));
@@ -149,7 +143,7 @@ TalentTree parseTree(std::string treeRep) {
                 addParent(t, talentTree[parent]);
             }
             else {
-                Talent* parentTalent = new Talent();
+                std::shared_ptr<Talent> parentTalent = std::make_shared<Talent>();
                 parentTalent->index = parent;
                 talentTree[parent] = parentTalent;
                 addParent(t, parentTalent);
@@ -160,7 +154,7 @@ TalentTree parseTree(std::string treeRep) {
                 addChild(t, talentTree[child]);
             }
             else {
-                Talent* childTalent = new Talent();
+                std::shared_ptr<Talent> childTalent = std::make_shared<Talent>();
                 childTalent->index = child;
                 talentTree[child] = childTalent;
                 addChild(t, childTalent);
@@ -230,17 +224,24 @@ digraph G {
     f << output.str();
     f.close();
 
+    /*
     std::ofstream batch_file;
     batch_file.open("commands.cmd", std::ios::trunc);
     batch_file <<
         "cd " << directory << std::endl <<
         "\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" -Tpng \"tree_" + tree.name + suffix + ".txt\" -o \"tree_" + tree.name + suffix +  ".png\"" << std::endl;
     batch_file.close();
-
     ShellExecuteW(0, L"open", L"cmd.exe", L"/c commands.cmd", 0, SW_HIDE);
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
     remove("commands.cmd"); // delete the batch file
+    */
+    std::string command = "\"\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" -Tpng \"" + directory + "\\tree_" + tree.name + suffix + ".txt\" -o \"" + directory + "\\tree_" + tree.name + suffix + ".png\"\"";
+    // \"C:\\Program Files\\Graphviz\\bin\\dot.exe\"
+    std::cout << command.c_str() << std::endl;
+    system(command.c_str());
+    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    
 }
 
 std::string visualizeTalentInformation(TalentTree tree) {
@@ -258,23 +259,23 @@ std::string visualizeTalentInformation(TalentTree tree) {
     return talentInfosStream.str();
 }
 
-void getTalentInfos(Talent* talent, std::unordered_map<std::string, std::string>& talentInfos) {
+void getTalentInfos(std::shared_ptr<Talent> talent, std::unordered_map<std::string, std::string>& talentInfos) {
     talentInfos[talent->index] = "[label=\"" + talent->index + " " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + getSwitchLabel(talent->talentSwitch) + "\" fillcolor=" + getFillColor(talent) + " shape=" + getShape(talent->type) + "]";
     for (auto& child : talent->children) {
         getTalentInfos(child, talentInfos);
     }
 }
 
-std::string getFillColor(Talent* talent) {
-    if (talent->talentSwitch < 0) {
+std::string getFillColor(std::shared_ptr<Talent> talent) {
+    if (talent->points == 0) {
+        return "white";
+    }
+    else if (talent->talentSwitch < 0) {
         if (talent->points == talent->maxPoints) {
             return "darkgoldenrod2";
         }
-        else if (talent->points > 0) {
-            return "chartreuse3";
-        }
         else {
-            return "white";
+            return "chartreuse3";
         }
     }
     else if (talent->talentSwitch == 0)
@@ -303,7 +304,7 @@ std::string getSwitchLabel(int talentSwitch) {
         return "";
 }
 
-void visualizeTalentConnections(Talent* root, std::stringstream& connections) {
+void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream& connections) {
     if (root->children.size() == 0)
         return;
     connections << root->index << " -> {";
@@ -319,10 +320,10 @@ void visualizeTalentConnections(Talent* root, std::stringstream& connections) {
 int main()
 {
     /*
-    Talent* root = createTalent("A1", 1);
-    Talent* tb1 = createTalent("B1", 1);
-    Talent* tb2 = createTalent("B2", 2);
-    Talent* tb3 = createTalent("B3", 1);
+    std::shared_ptr<Talent> root = createTalent("A1", 1);
+    std::shared_ptr<Talent> tb1 = createTalent("B1", 1);
+    std::shared_ptr<Talent> tb2 = createTalent("B2", 2);
+    std::shared_ptr<Talent> tb3 = createTalent("B3", 1);
     pairTalents(root, tb1);
     pairTalents(root, tb2);
     pairTalents(root, tb3);
@@ -361,7 +362,7 @@ int main()
     */
 
     std::unordered_set<std::string> slow_combinations;
-    //compareCombinations(fast_combinations, slow_combinations);
+    compareCombinations(fast_combinations, slow_combinations);
 }
 
 std::unordered_set<std::string> countConfigurations(TalentTree tree) {
@@ -375,10 +376,10 @@ std::unordered_set<std::string> countConfigurations(TalentTree tree) {
     return configurations;
 }
 
-void pickAndIterate(Talent* talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count) {
+void pickAndIterate(std::shared_ptr<Talent> talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count) {
     if (talent != nullptr)
         allocateTalent(talent, tree);
-    std::vector<Talent*> possibleTalents = getPossibleTalents(tree);
+    std::vector<std::shared_ptr<Talent>> possibleTalents = getPossibleTalents(tree);
     for (auto& ptalent : possibleTalents) {
         pickAndIterate(ptalent, tree, configurations, count);
     }
@@ -393,21 +394,21 @@ void pickAndIterate(Talent* talent, TalentTree tree, std::unordered_set<std::str
         deallocateTalent(talent, tree);
 }
 
-void allocateTalent(Talent* talent, TalentTree& tree) {
+void allocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree) {
     //try the copy variant, but in case reference variant is needed then here's the place to have a talent stack in TalentTree
     talent->points += 1;
     tree.spentTalentPoints += 1;
     tree.unspentTalentPoints -= 1;
 }
 
-void deallocateTalent(Talent* talent, TalentTree& tree) {
+void deallocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree) {
     talent->points -= 1;
     tree.spentTalentPoints -= 1;
     tree.unspentTalentPoints += 1;
 }
 
-std::vector<Talent*> getPossibleTalents(TalentTree tree) {
-    std::vector<Talent*> p;
+std::vector<std::shared_ptr<Talent>> getPossibleTalents(TalentTree tree) {
+    std::vector<std::shared_ptr<Talent>> p;
     if (tree.unspentTalentPoints == 0)
         return p;
     for (auto& root : tree.talentRoots) {
@@ -416,7 +417,7 @@ std::vector<Talent*> getPossibleTalents(TalentTree tree) {
     return p;
 }
 
-void checkIfTalentPossibleRecursive(Talent* talent, std::vector<Talent*>& p) {
+void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<std::shared_ptr<Talent>>& p) {
     if (talent->points < talent->maxPoints) {
         p.push_back(talent);
     }
@@ -500,17 +501,17 @@ void expandTreeTalents(TalentTree& tree) {
     }
 }
 
-void expandTalentAndAdvance(Talent* talent) {
+void expandTalentAndAdvance(std::shared_ptr<Talent> talent) {
     if (talent->maxPoints > 1) {
-        std::vector<Talent*> talentParts;
-        std::vector<Talent*> originalChildren;
+        std::vector<std::shared_ptr<Talent>> talentParts;
+        std::vector<std::shared_ptr<Talent>> originalChildren;
         for (auto& child : talent->children) {
             originalChildren.push_back(child);
         }
         talent->children.clear();
         talentParts.push_back(talent);
         for (int i = 0; i < talent->maxPoints - 1; i++) {
-            Talent* t = new Talent();
+            std::shared_ptr<Talent> t = std::make_shared<Talent>();
             t->index = talent->index + "_" + std::to_string(i + 1);
             t->name = talent->name + "_" + std::to_string(i + 1);
             t->type = talent->type;
@@ -527,7 +528,7 @@ void expandTalentAndAdvance(Talent* talent) {
             talentParts[talent->maxPoints - 1]->children = originalChildren;
         }
         for (auto& child : originalChildren) {
-            std::vector<Talent*>::iterator i = std::find(child->parents.begin(), child->parents.end(), talent);
+            std::vector<std::shared_ptr<Talent>>::iterator i = std::find(child->parents.begin(), child->parents.end(), talent);
             if (i != child->parents.end()) {
                 (*i) = talentParts[talent->maxPoints - 1];
             }
@@ -554,17 +555,17 @@ void contractTreeTalents(TalentTree& tree) {
     }
 }
 
-void contractTalentAndAdvance(Talent*& talent) {
+void contractTalentAndAdvance(std::shared_ptr<Talent>& talent) {
     std::vector<std::string> splitIndex = splitString(talent->index, "_");
     if (splitIndex.size() > 1) {
         std::vector<std::string> splitName = splitString(talent->name, "_");
         //talent has to be contracted
         //expanded Talents have 1 child at most and talent chain is at least 2 talents long
         std::string baseIndex = splitIndex[0];
-        std::vector<Talent*> talentParts;
-        Talent* currTalent = talent;
+        std::vector<std::shared_ptr<Talent>> talentParts;
+        std::shared_ptr<Talent> currTalent = talent;
         talentParts.push_back(talent);
-        Talent* childTalent = talent->children[0];
+        std::shared_ptr<Talent> childTalent = talent->children[0];
         while(splitString(childTalent->index, "_")[0] == baseIndex) {
             talentParts.push_back(childTalent);
             currTalent = childTalent;
@@ -572,7 +573,7 @@ void contractTalentAndAdvance(Talent*& talent) {
                 break;
             childTalent = currTalent->children[0];
         }
-        Talent* t = new Talent();
+        std::shared_ptr<Talent> t = std::make_shared<Talent>();
         t->index = baseIndex;
         t->name = splitName[0];
         t->type = talent->type;
@@ -587,11 +588,6 @@ void contractTalentAndAdvance(Talent*& talent) {
 
         //replace talent pointer
         talent = t;
-        //note:this does not work cause other parent talents of contracted talent still have old pointer and will throw an error
-        //only reasonably easily solvable by using smartpointers in Talents
-        //for (auto& dtalent : talentParts) {
-        //    delete dtalent;
-        //}
         //iterate through children
         for (auto& child : talent->children) {
             contractTalentAndAdvance(child);
@@ -630,7 +626,7 @@ TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
     //while tree.talentRoots is not empty do
     while (tree.talentRoots.size() > 0) {
         //remove a node n from tree.talentRoots
-        Talent* n = tree.talentRoots.front();
+        std::shared_ptr<Talent> n = tree.talentRoots.front();
         //note: terrible in theory but should not matter as vectors are small, otherwise use deque
         tree.talentRoots.erase(tree.talentRoots.begin());
         //add n to info.sortedTalents
@@ -641,7 +637,7 @@ TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
             //remove edge e from the graph
             //note: it should suffice to just remove the parent in m since every node is only visited once so n->children does not have to be changed inside loop
             if (m->parents.size() > 1) {
-                std::vector<Talent*>::iterator i = std::find(m->parents.begin(), m->parents.end(), n);
+                std::vector<std::shared_ptr<Talent>>::iterator i = std::find(m->parents.begin(), m->parents.end(), n);
                 if(i != m->parents.end()) {
                     m->parents.erase(i);
                 }
@@ -723,7 +719,6 @@ void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombi
         //creating a treeDAG destroys all parents in the tree, but should not be necessary anyway
         TreeDAGInfo treeDAG = createSortedMinimalDAG(tree);
         fastCombinationsOrdered.push_back(fillOutTreeWithBinaryIndexToString(comb.first, tree, treeDAG));
-        destroyTree(treeDAG);
     }
     std::sort(fastCombinationsOrdered.begin(), fastCombinationsOrdered.end());
 
@@ -743,6 +738,7 @@ void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombi
 }
 
 std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG) {
+    bool filterFlag = false;
     for (int i = 0; i < 64; i++) {
         //check if bit is on
         bool bitSet = (comb >> i) & 1U;
@@ -751,10 +747,13 @@ std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tr
             if (i >= treeDAG.sortedTalents.size())
                 throw std::logic_error("bit of a talent that does not exist is set!");
             treeDAG.sortedTalents[i]->points = 1;
+            if (i == 190000)
+                filterFlag = true;
         }
     }
     contractTreeTalents(tree);
-    //visualizeTree(tree, "41points_" + std::to_string(comb));
+    if(filterFlag)
+        visualizeTree(tree, "7points_E2_" + std::to_string(comb));
 
     return getTalentString(tree);
 }

@@ -4,41 +4,42 @@
 #include <set>
 #include <unordered_set>
 #include <unordered_map>
+#include <memory>
 
 enum class TalentType;
 struct TalentTree;
 struct Talent;
 struct TreeDAGInfo;
-void addChild(Talent* parent, Talent* child);
-void addParent(Talent* child, Talent* parent);
-void pairTalents(Talent* parent, Talent* child);
+void addChild(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child);
+void addParent(std::shared_ptr<Talent> child, std::shared_ptr<Talent> parent);
+void pairTalents(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child);
 std::string getTalentString(TalentTree tree);
 void printTree(TalentTree tree);
-void addTalentAndChildrenToMap(Talent* talent, std::unordered_map<std::string, int>& treeRepresentation);
+void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_map<std::string, int>& treeRepresentation);
 std::string unorderedMapToString(const std::unordered_map<std::string, int>& treeRepresentation, bool sortOutput);
-Talent* createTalent(std::string name, int maxPoints);
+std::shared_ptr<Talent> createTalent(std::string name, int maxPoints);
 TalentTree parseTree(std::string treeRep);
 std::vector<std::string> splitString(std::string s, std::string delimiter);
 void visualizeTree(TalentTree root, std::string suffix);
-void visualizeTalentConnections(Talent* root, std::stringstream& connections);
+void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream& connections);
 std::string visualizeTalentInformation(TalentTree tree);
-void getTalentInfos(Talent* talent, std::unordered_map<std::string, std::string>& talentInfos);
-std::string getFillColor(Talent* talent);
+void getTalentInfos(std::shared_ptr<Talent> talent, std::unordered_map<std::string, std::string>& talentInfos);
+std::string getFillColor(std::shared_ptr<Talent> talent);
 std::string getShape(TalentType type);
 std::string getSwitchLabel(int talentSwitch);
 
 std::unordered_set<std::string> countConfigurations(TalentTree tree);
-void pickAndIterate(Talent* talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count);
-void allocateTalent(Talent* talent, TalentTree& tree);
-void deallocateTalent(Talent* talent, TalentTree& tree);
-std::vector<Talent*> getPossibleTalents(TalentTree tree);
-void checkIfTalentPossibleRecursive(Talent* talent, std::vector<Talent*>& p);
+void pickAndIterate(std::shared_ptr<Talent> talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count);
+void allocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree);
+void deallocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree);
+std::vector<std::shared_ptr<Talent>> getPossibleTalents(TalentTree tree);
+void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<std::shared_ptr<Talent>>& p);
 
 std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree);
 void expandTreeTalents(TalentTree& tree);
-void expandTalentAndAdvance(Talent* talent);
+void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
 void contractTreeTalents(TalentTree& tree);
-void contractTalentAndAdvance(Talent*& talent);
+void contractTalentAndAdvance(std::shared_ptr<Talent>& talent);
 TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
 void visitTalent(
     int talentIndex,
