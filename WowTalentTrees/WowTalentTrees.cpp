@@ -23,7 +23,7 @@ enum class TalentType {
 
 struct TalentTree {
     std::string name = "defaultTree";
-    int unspentTalentPoints = 42;
+    int unspentTalentPoints = 30;
     int spentTalentPoints = 0;
     std::vector<Talent*> talentRoots;
 };
@@ -44,6 +44,12 @@ struct TreeDAGInfo {
     std::vector<Talent*> sortedTalents;
     std::vector<int> rootIndices;
 };
+
+void destroyTree(TreeDAGInfo treeDAGInfo) {
+    for (auto& talent : treeDAGInfo.sortedTalents) {
+        delete talent;
+    }
+}
 
 void addChild(Talent* parent, Talent* child) {
     parent->children.push_back(child);
@@ -354,6 +360,7 @@ int main()
     std::cout << "Slow operation time: " << ms_double.count() << " ms" << std::endl;
     */
 
+    std::unordered_set<std::string> slow_combinations;
     //compareCombinations(fast_combinations, slow_combinations);
 }
 
@@ -580,6 +587,11 @@ void contractTalentAndAdvance(Talent*& talent) {
 
         //replace talent pointer
         talent = t;
+        //note:this does not work cause other parent talents of contracted talent still have old pointer and will throw an error
+        //only reasonably easily solvable by using smartpointers in Talents
+        //for (auto& dtalent : talentParts) {
+        //    delete dtalent;
+        //}
         //iterate through children
         for (auto& child : talent->children) {
             contractTalentAndAdvance(child);
@@ -698,7 +710,10 @@ void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombi
     std::string directory = "C:\\Users\\Tobi\\Documents\\Programming\\CodeSnippets\\WowTalentTrees\\TreesInputsOutputs";
 
     std::vector<std::string> fastCombinationsOrdered;
+    int count = 0;
     for (auto& comb : fastCombinations) {
+        if (count++ % 100 == 0)
+            std::cout << count << std::endl;
         TalentTree tree = parseTree(
             "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
             "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
@@ -708,6 +723,7 @@ void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombi
         //creating a treeDAG destroys all parents in the tree, but should not be necessary anyway
         TreeDAGInfo treeDAG = createSortedMinimalDAG(tree);
         fastCombinationsOrdered.push_back(fillOutTreeWithBinaryIndexToString(comb.first, tree, treeDAG));
+        destroyTree(treeDAG);
     }
     std::sort(fastCombinationsOrdered.begin(), fastCombinationsOrdered.end());
 
@@ -738,7 +754,7 @@ std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tr
         }
     }
     contractTreeTalents(tree);
-    //visualizeTree(tree, "debugContracted");
+    //visualizeTree(tree, "41points_" + std::to_string(comb));
 
     return getTalentString(tree);
 }
