@@ -1,0 +1,84 @@
+Number of configurations for 1 talent points without switch talents: 1 and with : 1
+Fast operation time: 1.1904 ms
+Number of configurations for 2 talent points without switch talents: 3 and with : 3
+Fast operation time: 0.847 ms
+Number of configurations for 3 talent points without switch talents: 6 and with : 6
+Fast operation time: 1.1777 ms
+Number of configurations for 4 talent points without switch talents: 13 and with : 13
+Fast operation time: 1.5494 ms
+Number of configurations for 5 talent points without switch talents: 27 and with : 27
+Fast operation time: 1.8576 ms
+Number of configurations for 6 talent points without switch talents: 53 and with : 55
+Fast operation time: 2.3611 ms
+Number of configurations for 7 talent points without switch talents: 102 and with : 113
+Fast operation time: 3.1304 ms
+Number of configurations for 8 talent points without switch talents: 193 and with : 231
+Fast operation time: 6.5156 ms
+Number of configurations for 9 talent points without switch talents: 362 and with : 473
+Fast operation time: 10.2914 ms
+Number of configurations for 10 talent points without switch talents: 675 and with : 968
+Fast operation time: 19.5983 ms
+Number of configurations for 11 talent points without switch talents: 1240 and with : 1960
+Fast operation time: 39.2257 ms
+Number of configurations for 12 talent points without switch talents: 2223 and with : 3887
+Fast operation time: 70.2757 ms
+Number of configurations for 13 talent points without switch talents: 3869 and with : 7513
+Fast operation time: 128.648 ms
+Number of configurations for 14 talent points without switch talents: 6531 and with : 14122
+Fast operation time: 310.116 ms
+Number of configurations for 15 talent points without switch talents: 10697 and with : 25780
+Fast operation time: 736.225 ms
+Number of configurations for 16 talent points without switch talents: 17003 and with : 45692
+Fast operation time: 813.088 ms
+Number of configurations for 17 talent points without switch talents: 26216 and with : 78597
+Fast operation time: 1166.27 ms
+Number of configurations for 18 talent points without switch talents: 39161 and with : 131111
+Fast operation time: 1864.76 ms
+Number of configurations for 19 talent points without switch talents: 56582 and with : 211791
+Fast operation time: 2885.24 ms
+Number of configurations for 20 talent points without switch talents: 78931 and with : 330584
+Fast operation time: 4523.36 ms
+Number of configurations for 21 talent points without switch talents: 106112 and with : 497482
+Fast operation time: 6550.76 ms
+Number of configurations for 22 talent points without switch talents: 137247 and with : 720398
+Fast operation time: 8815.04 ms
+Number of configurations for 23 talent points without switch talents: 170554 and with : 1002535
+Fast operation time: 11804.2 ms
+Number of configurations for 24 talent points without switch talents: 203413 and with : 1339766
+Fast operation time: 15143.3 ms
+Number of configurations for 25 talent points without switch talents: 232614 and with : 1718418
+Fast operation time: 19190.8 ms
+Number of configurations for 26 talent points without switch talents: 254707 and with : 2113585
+Fast operation time: 20718.7 ms
+Number of configurations for 27 talent points without switch talents: 266399 and with : 2488108
+Fast operation time: 24148.3 ms
+Number of configurations for 28 talent points without switch talents: 265046 and with : 2793096
+Fast operation time: 26559.6 ms
+Number of configurations for 29 talent points without switch talents: 249328 and with : 2972524
+Fast operation time: 26651.6 ms
+Number of configurations for 30 talent points without switch talents: 220019 and with : 2975031
+Fast operation time: 25769.5 ms
+Number of configurations for 31 talent points without switch talents: 180449 and with : 2772778
+Fast operation time: 23778.4 ms
+Number of configurations for 32 talent points without switch talents: 136138 and with : 2380088
+Fast operation time: 19620.7 ms
+Number of configurations for 33 talent points without switch talents: 93431 and with : 1859266
+Fast operation time: 14796.7 ms
+Number of configurations for 34 talent points without switch talents: 57623 and with : 1304904
+Fast operation time: 10453.7 ms
+Number of configurations for 35 talent points without switch talents: 31499 and with : 811150
+Fast operation time: 6837.13 ms
+Number of configurations for 36 talent points without switch talents: 15012 and with : 439184
+Fast operation time: 3988.99 ms
+Number of configurations for 37 talent points without switch talents: 6109 and with : 202848
+Fast operation time: 2080.74 ms
+Number of configurations for 38 talent points without switch talents: 2064 and with : 77740
+Fast operation time: 941.862 ms
+Number of configurations for 39 talent points without switch talents: 556 and with : 23760
+Fast operation time: 356.802 ms
+Number of configurations for 40 talent points without switch talents: 112 and with : 5440
+Fast operation time: 113.154 ms
+Number of configurations for 41 talent points without switch talents: 15 and with : 832
+Fast operation time: 26.3426 ms
+Number of configurations for 42 talent points without switch talents: 1 and with : 64
+Fast operation time: 4.431 ms
