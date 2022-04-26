@@ -317,7 +317,24 @@ void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream&
     }
 }
 
-int main()
+void main() {
+    for (int i = 1; i < 43; i++) {
+        TalentTree tree = parseTree(
+            "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
+            "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
+            "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
+        );
+        tree.unspentTalentPoints = i;
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        std::unordered_map<std::uint64_t, int> fast_combinations = countConfigurationsFast(tree);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+        std::cout << "Fast operation time: " << ms_double.count() << " ms" << std::endl;
+    }
+}
+
+void testground()
 {
     /*
     std::shared_ptr<Talent> root = createTalent("A1", 1);
@@ -429,6 +446,7 @@ void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<
 }
 
 std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) {
+    int talentPoints = tree.unspentTalentPoints;
     //expand notes in tree
     expandTreeTalents(tree);
     //visualizeTree(tree, "expanded");
@@ -453,7 +471,7 @@ std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) 
     for (auto& talent : possibleTalents) {
         visitTalent(talent, visitedTalents, 1, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations);
     }
-    std::cout << "Number of configurations without switch talents: " << combinations.size() << " and with: " << getCombinationCount(combinations) << std::endl;
+    std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << getCombinationCount(combinations) << std::endl;
 
     return combinations;
 }
