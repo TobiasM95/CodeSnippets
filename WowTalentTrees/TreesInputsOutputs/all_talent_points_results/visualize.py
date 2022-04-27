@@ -41,7 +41,7 @@ def visualize(tal, t, cwos, cws):
     ax[0][0].plot(tal, t)
     ax[0][0].set_xlabel("# talent points")
     ax[0][0].set_ylabel("time [s]")
-    ax[0][0].set_title("total time spent")
+    ax[0][0].set_title(f"total time spent: {t.sum()} s")
     ax[0][1].plot(tal, cwos / 1000)
     ax[0][1].set_xlabel("# talent points")
     ax[0][1].set_ylabel("combinations [x1000]")

@@ -1,14 +1,7 @@
-// WowTalentTrees.cpp : Diese Datei enthält die Funktion "main". Hier beginnt und endet die Ausführung des Programms.
-//
-
 #include "WowTalentTrees.h"
 
 #include <iostream>
 #include <vector>
-#include <string>
-#include <set>
-#include <unordered_set>
-#include <unordered_map>
 #include <algorithm>
 #include <sstream> 
 #include <fstream>
@@ -16,11 +9,14 @@
 #include <chrono>
 #include <thread>
 
-
+// Switch talents can select/switch between 2 talents in the same slot
 enum class TalentType {
     ACTIVE, PASSIVE, SWITCH
 };
 
+/*
+A tree has a name, (un)spent talent points and a list of root talents (talents without parents) that are the starting point
+*/
 struct TalentTree {
     std::string name = "defaultTree";
     int unspentTalentPoints = 30;
@@ -28,6 +24,11 @@ struct TalentTree {
     std::vector<std::shared_ptr<Talent>> talentRoots;
 };
 
+/*
+A talent has an index (scheme: https://github.com/Bloodmallet/simc_support/blob/feature/10-0-experiments/simc_support/game_data/full_tree_coordinates.jpg),
+a name (currently not used), a type, the (max) points and a switch (might make the talent type redundant) as well as a list of all parents and children in
+a simple graph structure.
+*/
 struct Talent {
     std::string index = "";
     std::string name = "";
@@ -39,25 +40,35 @@ struct Talent {
     std::vector<std::shared_ptr<Talent>> children;
 };
 
+/*
+This is the container for the heavily optimized, topologically sorted DAG variant of the talent tree.
+The regular talent tree has all the meta information and easy readable/debugable structures whereas this container
+only has integer indices with an unconnected raw list of talents for computational efficieny.
+NOTE: The talents aren't selected (i.e. Talent::points incremented) at all but a flag is set in a uint64 which is used
+as an indexer. There exist routines that translate from uint64 to a regular tree and in the future maybe vice versa.
+*/
 struct TreeDAGInfo {
     std::vector<std::vector<int>> minimalTreeDAG;
     std::vector<std::shared_ptr<Talent>> sortedTalents;
     std::vector<int> rootIndices;
 };
 
+//Tree/talent helper functions
+
 void addChild(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child) {
     parent->children.push_back(child);
 }
-
 void addParent(std::shared_ptr<Talent> child, std::shared_ptr<Talent> parent) {
     child->parents.push_back(parent);
 }
-
 void pairTalents(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child) {
     parent->children.push_back(child);
     child->parents.push_back(parent);
 }
 
+/*
+Transforms a skilled talent tree into a string. That string does not contain the tree structure, just the selected talents.
+*/
 std::string getTalentString(TalentTree tree) {
     std::unordered_map<std::string, int> treeRepresentation;
     for (auto& root : tree.talentRoots) {
@@ -66,6 +77,9 @@ std::string getTalentString(TalentTree tree) {
     return unorderedMapToString(treeRepresentation, true);
 }
 
+/*
+Prints some informations about a specific tree.
+*/
 void printTree(TalentTree tree) {
     std::cout << tree.name << std::endl;
     std::cout << "Unspent talent points:\t" << tree.unspentTalentPoints << std::endl;
@@ -73,6 +87,9 @@ void printTree(TalentTree tree) {
     std::cout << getTalentString(tree) << std::endl;
 }
 
+/*
+Helper function that adds a talent and its children recursively to a map (and adds talent switch information if existing).
+*/
 void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_map<std::string, int>& treeRepresentation) {
     std::string talentName = talent->index;
     if (talent->talentSwitch >= 0) {
@@ -84,6 +101,9 @@ void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_ma
     }
 }
 
+/*
+Helper function that transforms a map that includes talents and their skill points to their respective string representation.
+*/
 std::string unorderedMapToString(const std::unordered_map<std::string, int>& treeRepresentation, bool sortOutput) {
     std::vector<std::string> talentsAndPoints;
     talentsAndPoints.reserve(treeRepresentation.size());
@@ -100,6 +120,9 @@ std::string unorderedMapToString(const std::unordered_map<std::string, int>& tre
     return treeString.str();
 }
 
+/*
+Helper function that creates a talent with the given index name and max points.
+*/
 std::shared_ptr<Talent> createTalent(std::string name, int maxPoints) {
     std::shared_ptr<Talent> talent = std::make_shared<Talent>();
     talent->index = name;
@@ -171,6 +194,9 @@ TalentTree parseTree(std::string treeRep) {
     return tree;
 }
 
+/*
+Helper function that splits a string given the delimiter, if string does not contain delimiter then whole string is returned.
+*/
 std::vector<std::string> splitString(std::string s, std::string delimiter) {
     std::vector<std::string> stringSplit;
 
@@ -188,20 +214,14 @@ std::vector<std::string> splitString(std::string s, std::string delimiter) {
     return stringSplit;
 }
 
+
+/*
+Visualizes a given tree with graphviz. Needs to be installed and the paths have to exist. Generally not safe to use without careful skimming through it.
+*/
 void visualizeTree(TalentTree tree, std::string suffix) {
     std::cout << "Visualize tree " << tree.name << " " << suffix << std::endl;
     std::string directory = "C:\\Users\\Tobi\\Documents\\Programming\\CodeSnippets\\WowTalentTrees\\TreesInputsOutputs";
-    /*
-digraph G {
-  { 
-    node [margin=0 fontcolor=blue fontsize=32 width=0.5 shape=circle style=filled]
-    b [fillcolor=yellow fixedsize=true label="a very long label"]
-    d [fixedsize=shape label="an even longer label"]
-  }
-  a -> {c d}
-  b -> {c d}
-}
-    */
+
     std::stringstream output;
     output << "strict digraph " << tree.name << " {\n";
     output << "label=\"" + tree.name + "\"\n";
@@ -219,31 +239,19 @@ digraph G {
     }
     output << "}";
 
+    //output txt file in graphviz format
     std::ofstream f;
     f.open(directory + "\\tree_" + tree.name + suffix + ".txt");
     f << output.str();
     f.close();
 
-    /*
-    std::ofstream batch_file;
-    batch_file.open("commands.cmd", std::ios::trunc);
-    batch_file <<
-        "cd " << directory << std::endl <<
-        "\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" -Tpng \"tree_" + tree.name + suffix + ".txt\" -o \"tree_" + tree.name + suffix +  ".png\"" << std::endl;
-    batch_file.close();
-    ShellExecuteW(0, L"open", L"cmd.exe", L"/c commands.cmd", 0, SW_HIDE);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    remove("commands.cmd"); // delete the batch file
-    */
     std::string command = "\"\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" -Tpng \"" + directory + "\\tree_" + tree.name + suffix + ".txt\" -o \"" + directory + "\\tree_" + tree.name + suffix + ".png\"\"";
-    // \"C:\\Program Files\\Graphviz\\bin\\dot.exe\"
-    std::cout << command.c_str() << std::endl;
     system(command.c_str());
-    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    
 }
 
+/*
+Helper function that gathers all individual graphviz talent visualization strings in graphviz language into one string.
+*/
 std::string visualizeTalentInformation(TalentTree tree) {
     std::unordered_map<std::string, std::string> talentInfos;
 
@@ -259,6 +267,9 @@ std::string visualizeTalentInformation(TalentTree tree) {
     return talentInfosStream.str();
 }
 
+/*
+Helper function that recursively gets the specific graphviz visualization string for a talent and its children.
+*/
 void getTalentInfos(std::shared_ptr<Talent> talent, std::unordered_map<std::string, std::string>& talentInfos) {
     talentInfos[talent->index] = "[label=\"" + talent->index + " " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + getSwitchLabel(talent->talentSwitch) + "\" fillcolor=" + getFillColor(talent) + " shape=" + getShape(talent->type) + "]";
     for (auto& child : talent->children) {
@@ -266,6 +277,9 @@ void getTalentInfos(std::shared_ptr<Talent> talent, std::unordered_map<std::stri
     }
 }
 
+/*
+Helper function that returns the appropriate fill color for different types of talents and points allocations.
+*/
 std::string getFillColor(std::shared_ptr<Talent> talent) {
     if (talent->points == 0) {
         return "white";
@@ -287,6 +301,9 @@ std::string getFillColor(std::shared_ptr<Talent> talent) {
 
 }
 
+/*
+Helper function that defines the shape of each talent type.
+*/
 std::string getShape(TalentType type) {
     switch (type) {
     case TalentType::ACTIVE: return "square";
@@ -295,6 +312,9 @@ std::string getShape(TalentType type) {
     }
 }
 
+/*
+Helper function that displays the switch state of a given talent.
+*/
 std::string getSwitchLabel(int talentSwitch) {
     if (talentSwitch == 0)
         return "\nleft";
@@ -304,6 +324,10 @@ std::string getSwitchLabel(int talentSwitch) {
         return "";
 }
 
+/*
+Helper function that recursively creates the graphviz visualization string of all talent connections. (We only need connections from parents to children.
+Also, graph is defined as strict digraph so we don't need to take care of duplicate arrows.
+*/
 void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream& connections) {
     if (root->children.size() == 0)
         return;
@@ -318,6 +342,7 @@ void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream&
 }
 
 void main() {
+    //This snippet runs the configuration count for 1 to 42 available talent points.
     for (int i = 1; i < 43; i++) {
         TalentTree tree = parseTree(
             "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
@@ -332,6 +357,13 @@ void main() {
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         std::cout << "Fast operation time: " << ms_double.count() << " ms" << std::endl;
     }
+
+    //Additional useful functions:
+    //visualizeTree(tree, "");
+    
+    //this function should not be called without knowing what it does, purely for debugging/error checking purposes.
+    //but the source code contains more useful function usages to expand/contract trees, converting uint64 indices of DAGs to a tree, etc.
+    //compareCombinations(fast_combinations, slow_combinations);
 }
 
 void testground()
@@ -382,69 +414,13 @@ void testground()
     compareCombinations(fast_combinations, slow_combinations);
 }
 
-std::unordered_set<std::string> countConfigurations(TalentTree tree) {
-    int count = 0;
-    std::unordered_set<std::string> configurations;
 
-    pickAndIterate(nullptr, tree, configurations, count);
-    
-    std::cout << "Found " << configurations.size() << " configurations without and " << count << " configurations with duplicates." << std::endl;
-    
-    return configurations;
-}
-
-void pickAndIterate(std::shared_ptr<Talent> talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count) {
-    if (talent != nullptr)
-        allocateTalent(talent, tree);
-    std::vector<std::shared_ptr<Talent>> possibleTalents = getPossibleTalents(tree);
-    for (auto& ptalent : possibleTalents) {
-        pickAndIterate(ptalent, tree, configurations, count);
-    }
-    if (tree.unspentTalentPoints == 0) {
-        count += 1;
-        std::string talentString = getTalentString(tree);
-        //if(configurations.count(talentString) == 0)
-        //visualizeTree(tree, "_" + std::to_string(count));// configurations.size()));
-        configurations.insert(talentString);
-    }
-    if (talent != nullptr)
-        deallocateTalent(talent, tree);
-}
-
-void allocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree) {
-    //try the copy variant, but in case reference variant is needed then here's the place to have a talent stack in TalentTree
-    talent->points += 1;
-    tree.spentTalentPoints += 1;
-    tree.unspentTalentPoints -= 1;
-}
-
-void deallocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree) {
-    talent->points -= 1;
-    tree.spentTalentPoints -= 1;
-    tree.unspentTalentPoints += 1;
-}
-
-std::vector<std::shared_ptr<Talent>> getPossibleTalents(TalentTree tree) {
-    std::vector<std::shared_ptr<Talent>> p;
-    if (tree.unspentTalentPoints == 0)
-        return p;
-    for (auto& root : tree.talentRoots) {
-        checkIfTalentPossibleRecursive(root, p);
-    }
-    return p;
-}
-
-void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<std::shared_ptr<Talent>>& p) {
-    if (talent->points < talent->maxPoints) {
-        p.push_back(talent);
-    }
-    else {
-        for (auto& child : talent->children) {
-            checkIfTalentPossibleRecursive(child, p);
-        }
-    }
-}
-
+/*
+Counts configurations of a tree with given amount of talent points by topologically sorting the tree and iterating through valid paths (i.e.
+paths with monotonically increasing talent indices). See Wikipedia DAGs (which Wow Talent Trees are) and Topological Sorting.
+Todo: Create a bulk count algorithm that does not employ early stopping if talent tree can't be filled anymore but keeps track of all sub tree binary indices
+to do all different talent points calculations in a single run
+*/
 std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) {
     int talentPoints = tree.unspentTalentPoints;
     //expand notes in tree
@@ -456,12 +432,12 @@ std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) 
     if (sortedTreeDAG.sortedTalents.size() > 64)
         throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
     std::unordered_map<std::uint64_t, int> combinations;
+    int allCombinations = 0;
 
     //iterate through all possible combinations in order:
     //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
     //weight of combination = factor of 2 for every switch talent in path
-    std::vector<int> visitedTalents;
-    visitedTalents.reserve(sortedTreeDAG.minimalTreeDAG.size());
+    std::uint64_t visitedTalents = 0;
     int talentPointsLeft = tree.unspentTalentPoints;
     //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
     std::set<int> possibleTalents;
@@ -469,33 +445,34 @@ std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) 
         possibleTalents.insert(root);
     }
     for (auto& talent : possibleTalents) {
-        visitTalent(talent, visitedTalents, 1, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations);
+        visitTalent(talent, visitedTalents, 1, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
     }
-    std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << getCombinationCount(combinations) << std::endl;
+    std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
 
     return combinations;
 }
 
 void visitTalent(
-    int talentIndex, 
-    std::vector<int> visitedTalents, 
+    int talentIndex,
+    std::uint64_t visitedTalents,
     int currentMultiplier,
-    int talentPointsLeft, 
-    std::set<int> possibleTalents, 
-    const TreeDAGInfo& sortedTreeDAG, 
-    std::unordered_map<std::uint64_t, int>& combinations
+    int talentPointsLeft,
+    std::set<int> possibleTalents,
+    const TreeDAGInfo& sortedTreeDAG,
+    std::unordered_map<std::uint64_t, int>& combinations,
+    int& allCombinations
 ) {
     //for each node visited add child nodes (in DAG array) to the vector of possible nodes and reduce talent points left
     //check if talent points left == 0 (finish) or num_nodes - current_node < talent_points_left (check for off by one error) (cancel cause talent tree can't be filled)
     //iterate through all nodes in vector possible nodes to visit but only visit nodes whose index > current index
     //if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
-    visitedTalents.push_back(talentIndex);
+    setTalent(visitedTalents, talentIndex);
     talentPointsLeft -= 1;
     currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
     if (talentPointsLeft == 0) {
         //finish, perform bit shift
-        std::uint64_t binaryCombinationIndex = getBinaryCombinationIndex(visitedTalents);
-        combinations[binaryCombinationIndex] = currentMultiplier;
+        combinations[visitedTalents] = currentMultiplier;
+        allCombinations += currentMultiplier;
         //std::cout << "Insert combination " << binaryCombinationIndex << std::endl;
         return;
     }
@@ -508,7 +485,7 @@ void visitTalent(
     }
     for (auto& nextTalent : possibleTalents) {
         if (nextTalent > talentIndex) {
-            visitTalent(nextTalent, visitedTalents, currentMultiplier, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations);
+            visitTalent(nextTalent, visitedTalents, currentMultiplier, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
     }
 }
@@ -702,14 +679,8 @@ TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
     return info;
 }
 
-std::uint64_t getBinaryCombinationIndex(std::vector<int> visitedTalents) {
-    //if (visitedTalents.size() != 6)
-    //    throw std::logic_error("not exactly 6 talent points spent!");
-    std::uint64_t index = 0;
-    for (auto& talent : visitedTalents) {
-        index |= 1ULL << talent;
-    }
-    return index;
+inline void setTalent(std::uint64_t& talent, int index) {
+    talent |= 1ULL << index;
 }
 
 int getCombinationCount(const std::unordered_map<std::uint64_t, int>& combinations) {
@@ -774,4 +745,103 @@ std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tr
         visualizeTree(tree, "7points_E2_" + std::to_string(comb));
 
     return getTalentString(tree);
+}
+
+
+
+
+
+
+
+
+/***************************************************************************************
+LEGACY CODE
+ORIGINAL AND VERY SLOW VERSION OF A VERY VERBOSE CONFIGURATION COUNT ALGORITHM THAT DIRECTLY ACTS ON TREE OBJECTS
+NOTE: Is extremely slow cause it runs through every possible path to the end even if it ends in duplicates.
+This can be fixed by keeping track of partial paths in a set (with binary indexers) but would be make it less verbose and isn't faster
+than topologically sorting trees anyway so it's not worth to do it anyway. This is for academic purposes anyway. 
+Anything above 10 talent points runs extremely slow.
+***************************************************************************************/
+
+/*
+Creates every possible path (multiple paths can have same talents selected but got there by different selection orders.
+This algorithm does not prevent dupliactes and therefore is unusably slow) by walking through the tree individually and sequentially.
+*/
+std::unordered_set<std::string> countConfigurations(TalentTree tree) {
+    int count = 0;
+    std::unordered_set<std::string> configurations;
+
+    pickAndIterate(nullptr, tree, configurations, count);
+
+    std::cout << "Found " << configurations.size() << " configurations without and " << count << " configurations with duplicates." << std::endl;
+
+    return configurations;
+}
+
+/*
+Recursive function that picks a talent (iterates through the list of possible talents) allocates it and calls the same function again.
+It operates on a single physical tree (since it runs sequentially) to save memory, tradeoff is that you have to deallocate a talent at the end.
+*/
+void pickAndIterate(std::shared_ptr<Talent> talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count) {
+    if (talent != nullptr)
+        allocateTalent(talent, tree);
+    std::vector<std::shared_ptr<Talent>> possibleTalents = getPossibleTalents(tree);
+    for (auto& ptalent : possibleTalents) {
+        pickAndIterate(ptalent, tree, configurations, count);
+    }
+    if (tree.unspentTalentPoints == 0) {
+        count += 1;
+        std::string talentString = getTalentString(tree);
+        //if(configurations.count(talentString) == 0)
+        //visualizeTree(tree, "_" + std::to_string(count));// configurations.size()));
+        configurations.insert(talentString);
+    }
+    if (talent != nullptr)
+        deallocateTalent(talent, tree);
+}
+
+/*
+Helper function that allocates a talent in the tree.
+*/
+void allocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree) {
+    talent->points += 1;
+    tree.spentTalentPoints += 1;
+    tree.unspentTalentPoints -= 1;
+}
+
+/*
+Helper function that deallocates a talent in the tree.
+*/
+void deallocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree) {
+    talent->points -= 1;
+    tree.spentTalentPoints -= 1;
+    tree.unspentTalentPoints += 1;
+}
+
+/*
+Iterates through the tree recursively to check if a talent is available according to the standard rules.
+*/
+std::vector<std::shared_ptr<Talent>> getPossibleTalents(TalentTree tree) {
+    std::vector<std::shared_ptr<Talent>> p;
+    if (tree.unspentTalentPoints == 0)
+        return p;
+    for (auto& root : tree.talentRoots) {
+        checkIfTalentPossibleRecursive(root, p);
+    }
+    return p;
+}
+
+/*
+Checks if a talent is available (points < max points) or if it's filled already and moves on to children.
+Does not need to check parent filled status cause it runs recursively and only advances to children if talent is filled.
+*/
+void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<std::shared_ptr<Talent>>& p) {
+    if (talent->points < talent->maxPoints) {
+        p.push_back(talent);
+    }
+    else {
+        for (auto& child : talent->children) {
+            checkIfTalentPossibleRecursive(child, p);
+        }
+    }
 }

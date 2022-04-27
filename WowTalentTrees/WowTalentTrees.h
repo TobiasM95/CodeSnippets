@@ -28,13 +28,6 @@ std::string getFillColor(std::shared_ptr<Talent> talent);
 std::string getShape(TalentType type);
 std::string getSwitchLabel(int talentSwitch);
 
-std::unordered_set<std::string> countConfigurations(TalentTree tree);
-void pickAndIterate(std::shared_ptr<Talent> talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count);
-void allocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree);
-void deallocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree);
-std::vector<std::shared_ptr<Talent>> getPossibleTalents(TalentTree tree);
-void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<std::shared_ptr<Talent>>& p);
-
 std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree);
 void expandTreeTalents(TalentTree& tree);
 void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
@@ -43,15 +36,27 @@ void contractTalentAndAdvance(std::shared_ptr<Talent>& talent);
 TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
 void visitTalent(
     int talentIndex,
-    std::vector<int> visitedTalents,
+    std::uint64_t visitedTalents,
     int currentMultiplier,
     int talentPointsLeft,
     std::set<int> possibleTalents,
     const TreeDAGInfo& sortedTreeDAG,
-    std::unordered_map<std::uint64_t, int>& combinations
+    std::unordered_map<std::uint64_t, int>& combinations,
+    int& allCombinations
 );
-std::uint64_t getBinaryCombinationIndex(std::vector<int> visitedTalents);
+inline void setTalent(std::uint64_t& talent, int index);
 int getCombinationCount(const std::unordered_map<std::uint64_t, int>& combinations);
 
 void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
 std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG);
+
+/***************************************************************************************
+LEGACY CODE
+ORIGINAL AND VERY SLOW VERSION OF A VERY VERBOSE CONFIGURATION COUNT ALGORITHM THAT DIRECTLY ACTS ON TREE OBJECTS
+***************************************************************************************/
+std::unordered_set<std::string> countConfigurations(TalentTree tree);
+void pickAndIterate(std::shared_ptr<Talent> talent, TalentTree tree, std::unordered_set<std::string>& configurations, int& count);
+void allocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree);
+void deallocateTalent(std::shared_ptr<Talent> talent, TalentTree& tree);
+std::vector<std::shared_ptr<Talent>> getPossibleTalents(TalentTree tree);
+void checkIfTalentPossibleRecursive(std::shared_ptr<Talent> talent, std::vector<std::shared_ptr<Talent>>& p);
