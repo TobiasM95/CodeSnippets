@@ -35,6 +35,7 @@ struct Talent {
     TalentType type = TalentType::ACTIVE;
     int points = 0;
     int maxPoints = 0;
+    int pointsRequired = 0;
     int talentSwitch = -1;
     std::vector<std::shared_ptr<Talent>> parents;
     std::vector<std::shared_ptr<Talent>> children;
@@ -426,6 +427,7 @@ std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) 
     //expand notes in tree
     expandTreeTalents(tree);
     //visualizeTree(tree, "expanded");
+    
     //create sorted DAG (is vector of vector and at most nx(m+1) Array where n = # nodes and m is the max amount of connections a node has to childs and 
     //+1 because first column contains the weight (1 for regular talents and 2 for switch talents))
     TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(tree);
@@ -441,61 +443,84 @@ std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) 
     int talentPointsLeft = tree.unspentTalentPoints;
     //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
     std::set<int> possibleTalents;
+    //add roots to the list of possible talents first, then iterate recursively with visitTalent
     for (auto& root : sortedTreeDAG.rootIndices) {
         possibleTalents.insert(root);
     }
     for (auto& talent : possibleTalents) {
-        visitTalent(talent, visitedTalents, 1, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+        //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
+        if(sortedTreeDAG.sortedTalents[talent]->pointsRequired == 0)
+            visitTalent(talent, visitedTalents, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
     }
     std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
 
     return combinations;
 }
 
+/*
+Core recursive function in fast combination counting. Keeps track of selected talents, checks if combination is complete or cannot be finished (early stopping),
+and iterates through possible children in a sorted fashion to prevent duplicates.
+*/
 void visitTalent(
     int talentIndex,
     std::uint64_t visitedTalents,
     int currentMultiplier,
+    int talentPointsSpent,
     int talentPointsLeft,
     std::set<int> possibleTalents,
     const TreeDAGInfo& sortedTreeDAG,
     std::unordered_map<std::uint64_t, int>& combinations,
     int& allCombinations
 ) {
-    //for each node visited add child nodes (in DAG array) to the vector of possible nodes and reduce talent points left
-    //check if talent points left == 0 (finish) or num_nodes - current_node < talent_points_left (check for off by one error) (cancel cause talent tree can't be filled)
-    //iterate through all nodes in vector possible nodes to visit but only visit nodes whose index > current index
-    //if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
+    /*
+    for each node visited add child nodes(in DAG array) to the vector of possible nodesand reduce talent points left
+    check if talent points left == 0 (finish) or num_nodes - current_node < talent_points_left (check for off by one error) (cancel cause talent tree can't be filled)
+    iterate through all nodes in vector possible nodes to visit but only visit nodes whose index > current index
+    if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
+    */
+    //do combination housekeeping
     setTalent(visitedTalents, talentIndex);
+    talentPointsSpent += 1;
     talentPointsLeft -= 1;
     currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
+    //check if path is complete
     if (talentPointsLeft == 0) {
-        //finish, perform bit shift
         combinations[visitedTalents] = currentMultiplier;
         allCombinations += currentMultiplier;
-        //std::cout << "Insert combination " << binaryCombinationIndex << std::endl;
         return;
     }
+    //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but
+    //sorting guarantees that these paths were visited earlier already)
     if (sortedTreeDAG.sortedTalents.size() - talentIndex - 1 < talentPointsLeft) {
         //cannot use up all the leftover talent points, therefore incomplete
         return;
     }
+    //add all possible children to the set for iteration
     for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-        possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+        //check if talentPointsSpent is >= child note points required
+        if(talentPointsSpent >= sortedTreeDAG.sortedTalents[sortedTreeDAG.minimalTreeDAG[talentIndex][i]]->pointsRequired)
+            possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
     }
+    //visit all possible children while keeping correct order
     for (auto& nextTalent : possibleTalents) {
         if (nextTalent > talentIndex) {
-            visitTalent(nextTalent, visitedTalents, currentMultiplier, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+            visitTalent(nextTalent, visitedTalents, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
     }
 }
 
+/*
+Transforms tree with "complex" talents (that can hold mutliple skill points) to "simple" tree with only talents that can hold a single talent point
+*/
 void expandTreeTalents(TalentTree& tree) {
     for (auto& root : tree.talentRoots) {
         expandTalentAndAdvance(root);
     }
 }
 
+/*
+Creates all the necessary single point talents to replace a multi point talent and inserts them with correct parents/children
+*/
 void expandTalentAndAdvance(std::shared_ptr<Talent> talent) {
     if (talent->maxPoints > 1) {
         std::vector<std::shared_ptr<Talent>> talentParts;
@@ -544,12 +569,18 @@ void expandTalentAndAdvance(std::shared_ptr<Talent> talent) {
     }
 }
 
+/*
+Transforms tree with "simple" talents (that can only hold one skill point) to "complex" tree with multi-skill-point talents
+*/
 void contractTreeTalents(TalentTree& tree) {
     for (auto& root : tree.talentRoots) {
         contractTalentAndAdvance(root);
     }
 }
 
+/*
+Creates all the necessary multi point talents to replace a single point talent and inserts them with correct parents/children
+*/
 void contractTalentAndAdvance(std::shared_ptr<Talent>& talent) {
     std::vector<std::string> splitIndex = splitString(talent->index, "_");
     if (splitIndex.size() > 1) {
@@ -595,12 +626,21 @@ void contractTalentAndAdvance(std::shared_ptr<Talent>& talent) {
     }
 }
 
+/*
+Creates a minimal representation of the TalentTree object as a vector of integer vectors, where each vector has informations about a talent such as switch multiplier
+and child nodes. Wow talent trees are essentially DAGs and can therefore be topologically sorted. TreeDAGInfo contains the minimal tree representation,
+a vector of raw Talents which correspond to the indices in the min. tree rep. and indices of root talents.
+*/
 TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
+    //Note: Guarantees that the tree is sorted from left to right first, top to bottom second with each layer of the tree guaranteed to have a lower index than
+    //the following layer. This makes it possible to implement min. talent points required for a layer to unlock, checked while iterating in visitTalent, while keeping
+    //the algorithm the same and improving speed.
     //note: EVEN THOUGH TREE IS PASSED BY COPY ALL PARENTS WILL BE DELETED FROM TALENTS!
     TreeDAGInfo info;
     for (int i = 0; i < tree.talentRoots.size(); i++) {
         info.rootIndices.push_back(i);
     }
+    //Original Kahn's algorithm description from https://en.wikipedia.org/wiki/Topological_sorting
     /*
     L ← Empty list that will contain the sorted elements    #info.minimalTreeDAG / info.sortedTalents
     S ← Set of all nodes with no incoming edge              #tree.talentRoots
@@ -618,6 +658,9 @@ TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
     else 
         return L   (a topologically sorted order)
     */
+    std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](std::shared_ptr<Talent> a, std::shared_ptr<Talent> b) {
+            return a->pointsRequired > b->pointsRequired;
+        });
     //while tree.talentRoots is not empty do
     while (tree.talentRoots.size() > 0) {
         //remove a node n from tree.talentRoots
@@ -648,11 +691,14 @@ TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
             if (m->parents.size() == 0) {
                 //insert m into S
                 tree.talentRoots.push_back(m);
+                std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](std::shared_ptr<Talent> a, std::shared_ptr<Talent> b) {
+                    return a->pointsRequired > b->pointsRequired;
+                });
             }
         }
     }
 
-    //convert sorted talents to minimalTreeDAG
+    //convert sorted talents to minimalTreeDAG representation (raw talents -> integer index vectors)
     for (auto& talent : info.sortedTalents) {
         std::vector<int> child_indices(talent->children.size() + 1);
         child_indices[0] = talent->type == TalentType::SWITCH ? 2 : 1;
@@ -666,31 +712,20 @@ TreeDAGInfo createSortedMinimalDAG(TalentTree tree) {
         info.minimalTreeDAG.push_back(child_indices);
     }
 
-    /*
-    for (int i = 0; i < info.minimalTreeDAG.size(); i++) {
-        std::cout << i << " (" << info.sortedTalents[i]->index << ")  \t: ";
-        for (auto& index : info.minimalTreeDAG[i]) {
-            std::cout << index << ", ";
-        }
-        std::cout << std::endl;
-    }
-    */
-
     return info;
 }
 
+/*
+Helper function to set a talent as selected (simple bit flip function)
+*/
 inline void setTalent(std::uint64_t& talent, int index) {
     talent |= 1ULL << index;
 }
 
-int getCombinationCount(const std::unordered_map<std::uint64_t, int>& combinations) {
-    int count = 0;
-    for (auto& item : combinations) {
-        count += item.second;
-    }
-    return count;
-}
-
+/*
+Debug function to compare the combinations of the slow legacy method with the fast counting for error checking purposes.
+Creates two files that hold all combinations in the string representation after sorting to make file diff easy and quick.
+*/
 void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix) {
     std::string directory = "C:\\Users\\Tobi\\Documents\\Programming\\CodeSnippets\\WowTalentTrees\\TreesInputsOutputs";
 
@@ -726,6 +761,9 @@ void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombi
     std::copy(slowCombinationsOrdered.begin(), slowCombinationsOrdered.end(), output_iterator_slow);
 }
 
+/*
+Recreates a full multi point talents TalentTree based on a uint64 index that holds selected talents. Has the option to filter out trees and visualize them.
+*/
 std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG) {
     bool filterFlag = false;
     for (int i = 0; i < 64; i++) {

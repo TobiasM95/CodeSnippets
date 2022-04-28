@@ -38,6 +38,7 @@ void visitTalent(
     int talentIndex,
     std::uint64_t visitedTalents,
     int currentMultiplier,
+    int talentPointsSpent,
     int talentPointsLeft,
     std::set<int> possibleTalents,
     const TreeDAGInfo& sortedTreeDAG,
@@ -45,7 +46,6 @@ void visitTalent(
     int& allCombinations
 );
 inline void setTalent(std::uint64_t& talent, int index);
-int getCombinationCount(const std::unordered_map<std::uint64_t, int>& combinations);
 
 void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
 std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG);
