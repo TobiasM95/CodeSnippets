@@ -342,7 +342,12 @@ void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream&
     }
 }
 
-void main() {
+int main() {
+    //individualCombinationCount();
+    parallelCombinationCount();
+}
+
+void individualCombinationCount() {
     //This snippet runs the configuration count for 1 to 42 available talent points.
     for (int i = 1; i < 43; i++) {
         TalentTree tree = parseTree(
@@ -365,6 +370,21 @@ void main() {
     //this function should not be called without knowing what it does, purely for debugging/error checking purposes.
     //but the source code contains more useful function usages to expand/contract trees, converting uint64 indices of DAGs to a tree, etc.
     //compareCombinations(fast_combinations, slow_combinations);
+}
+
+void parallelCombinationCount() {
+    TalentTree tree = parseTree(
+        "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
+        "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
+        "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
+    );
+    tree.unspentTalentPoints = 42;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    std::vector<std::unordered_map<std::uint64_t, int>> fast_combinations = countConfigurationsFastParallel(tree);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+    std::cout << "Fast parallel operation time: " << ms_double.count() << " ms" << std::endl;
 }
 
 void testground()
@@ -508,6 +528,95 @@ void visitTalent(
         }
     }
 }
+
+/*
+Parallel version of fast configuration counting that runs slower for individual Ns (where N is the amount of available talent points and N >= smallest path from top to bottom)
+compared to single N count but includes all combinations for 1 up to N talent points.
+*/
+std::vector<std::unordered_map<std::uint64_t, int>> countConfigurationsFastParallel(TalentTree tree) {
+    int talentPoints = tree.unspentTalentPoints;
+    //expand notes in tree
+    expandTreeTalents(tree);
+    //visualizeTree(tree, "expanded");
+
+    //create sorted DAG (is vector of vector and at most nx(m+1) Array where n = # nodes and m is the max amount of connections a node has to childs and 
+    //+1 because first column contains the weight (1 for regular talents and 2 for switch talents))
+    TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(tree);
+    if (sortedTreeDAG.sortedTalents.size() > 64)
+        throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
+    std::vector<std::unordered_map<std::uint64_t, int>> combinations;
+    combinations.resize(talentPoints);
+    std::vector<int> allCombinations;
+    allCombinations.resize(talentPoints, 0);
+
+    //iterate through all possible combinations in order:
+    //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
+    //weight of combination = factor of 2 for every switch talent in path
+    std::uint64_t visitedTalents = 0;
+    int talentPointsLeft = tree.unspentTalentPoints;
+    //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
+    std::set<int> possibleTalents;
+    //add roots to the list of possible talents first, then iterate recursively with visitTalent
+    for (auto& root : sortedTreeDAG.rootIndices) {
+        possibleTalents.insert(root);
+    }
+    for (auto& talent : possibleTalents) {
+        //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
+        if (sortedTreeDAG.sortedTalents[talent]->pointsRequired == 0)
+            visitTalentParallel(talent, visitedTalents, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+    }
+    for (int i = 0; i < talentPoints; i++) {
+        std::cout << "Number of configurations for " << i+1 << " talent points without switch talents: " << combinations[i].size() << " and with : " << allCombinations[i] << std::endl;
+    }
+    
+    return combinations;
+}
+
+/*
+Parallel version of recursive talent visitation that does not early stop and keeps track of all paths shorter than max path length.
+*/
+void visitTalentParallel(
+    int talentIndex,
+    std::uint64_t visitedTalents,
+    int currentMultiplier,
+    int talentPointsSpent,
+    int talentPointsLeft,
+    std::set<int> possibleTalents,
+    const TreeDAGInfo& sortedTreeDAG,
+    std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
+    std::vector<int>& allCombinations
+) {
+    /*
+    for each node visited add child nodes(in DAG array) to the vector of possible nodesand reduce talent points left
+    check if talent points left == 0 (finish) or num_nodes - current_node < talent_points_left (check for off by one error) (cancel cause talent tree can't be filled)
+    iterate through all nodes in vector possible nodes to visit but only visit nodes whose index > current index
+    if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
+    */
+    //do combination housekeeping
+    setTalent(visitedTalents, talentIndex);
+    talentPointsSpent += 1;
+    talentPointsLeft -= 1;
+    currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
+
+    combinations[talentPointsSpent - 1][visitedTalents] = currentMultiplier;
+    allCombinations[talentPointsSpent - 1] += currentMultiplier;
+    if (talentPointsLeft == 0)
+        return;
+
+    //add all possible children to the set for iteration
+    for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
+        //check if talentPointsSpent is >= child note points required
+        if (talentPointsSpent >= sortedTreeDAG.sortedTalents[sortedTreeDAG.minimalTreeDAG[talentIndex][i]]->pointsRequired)
+            possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+    }
+    //visit all possible children while keeping correct order
+    for (auto& nextTalent : possibleTalents) {
+        if (nextTalent > talentIndex) {
+            visitTalentParallel(nextTalent, visitedTalents, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+        }
+    }
+}
+
 
 /*
 Transforms tree with "complex" talents (that can hold mutliple skill points) to "simple" tree with only talents that can hold a single talent point

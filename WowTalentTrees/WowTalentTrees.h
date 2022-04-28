@@ -28,7 +28,12 @@ std::string getFillColor(std::shared_ptr<Talent> talent);
 std::string getShape(TalentType type);
 std::string getSwitchLabel(int talentSwitch);
 
+void individualCombinationCount();
+void parallelCombinationCount();
+void testground();
+
 std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree);
+std::vector<std::unordered_map<std::uint64_t, int>> countConfigurationsFastParallel(TalentTree tree);
 void expandTreeTalents(TalentTree& tree);
 void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
 void contractTreeTalents(TalentTree& tree);
@@ -44,6 +49,17 @@ void visitTalent(
     const TreeDAGInfo& sortedTreeDAG,
     std::unordered_map<std::uint64_t, int>& combinations,
     int& allCombinations
+);
+void visitTalentParallel(
+    int talentIndex,
+    std::uint64_t visitedTalents,
+    int currentMultiplier,
+    int talentPointsSpent,
+    int talentPointsLeft,
+    std::set<int> possibleTalents,
+    const TreeDAGInfo& sortedTreeDAG,
+    std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
+    std::vector<int>& allCombinations
 );
 inline void setTalent(std::uint64_t& talent, int index);
 
