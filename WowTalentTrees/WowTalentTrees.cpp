@@ -343,8 +343,8 @@ void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream&
 }
 
 int main() {
-    //individualCombinationCount();
-    parallelCombinationCount();
+    individualCombinationCount();
+    //parallelCombinationCount();
 }
 
 void individualCombinationCount() {
@@ -517,13 +517,13 @@ void visitTalent(
     }
     //add all possible children to the set for iteration
     for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-        //check if talentPointsSpent is >= child note points required
-        if(talentPointsSpent >= sortedTreeDAG.sortedTalents[sortedTreeDAG.minimalTreeDAG[talentIndex][i]]->pointsRequired)
-            possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+        possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
     }
     //visit all possible children while keeping correct order
     for (auto& nextTalent : possibleTalents) {
-        if (nextTalent > talentIndex) {
+        //check if next talent is in right order andn talentPointsSpent is >= next talent points required
+        if (nextTalent > talentIndex &&
+            talentPointsSpent >= sortedTreeDAG.sortedTalents[nextTalent]->pointsRequired) {
             visitTalent(nextTalent, visitedTalents, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
     }
@@ -605,13 +605,13 @@ void visitTalentParallel(
 
     //add all possible children to the set for iteration
     for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-        //check if talentPointsSpent is >= child note points required
-        if (talentPointsSpent >= sortedTreeDAG.sortedTalents[sortedTreeDAG.minimalTreeDAG[talentIndex][i]]->pointsRequired)
-            possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+        possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
     }
     //visit all possible children while keeping correct order
     for (auto& nextTalent : possibleTalents) {
-        if (nextTalent > talentIndex) {
+        //check order is correct and if talentPointsSpent is >= next talent points required
+        if (nextTalent > talentIndex &&
+            talentPointsSpent >= sortedTreeDAG.sortedTalents[nextTalent]->pointsRequired) {
             visitTalentParallel(nextTalent, visitedTalents, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
     }
