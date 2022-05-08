@@ -34,8 +34,8 @@ namespace WowTalentTrees {
     void parallelCombinationCount(int points);
     void testground();
 
-    std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree);
-    std::vector<std::unordered_map<std::uint64_t, int>> countConfigurationsFastParallel(TalentTree tree);
+    std::vector<std::pair<std::uint64_t, int>> countConfigurationsFast(TalentTree tree);
+    std::vector<std::vector<std::pair<std::uint64_t, int>>> countConfigurationsFastParallel(TalentTree tree);
     void expandTreeTalents(TalentTree& tree);
     void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
     void contractTreeTalents(TalentTree& tree);
@@ -50,7 +50,7 @@ namespace WowTalentTrees {
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::unordered_map<std::uint64_t, int>& combinations,
+        std::vector<std::pair<std::uint64_t, int>>& combinations,
         int& allCombinations
     );
     void visitTalentParallel(
@@ -62,7 +62,7 @@ namespace WowTalentTrees {
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
+        std::vector<std::vector<std::pair<std::uint64_t, int>>>& combinations,
         std::vector<int>& allCombinations
     );
     inline void setTalent(std::uint64_t& talent, int index);

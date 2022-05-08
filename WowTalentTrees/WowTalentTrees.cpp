@@ -16,8 +16,8 @@ int main() {
     auto t1 = std::chrono::high_resolution_clock::now();
 
     //WowTalentTrees::bloodmalletCount(16);
-    WowTalentTrees::individualCombinationCount(-1);
-    //WowTalentTrees::parallelCombinationCount(42);
+    //WowTalentTrees::individualCombinationCount(-1);
+    WowTalentTrees::parallelCombinationCount(42);
 
     auto t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> ms_double = t2 - t1;
@@ -371,7 +371,7 @@ namespace WowTalentTrees {
     }
 
     void individualCombinationCount(int points) {
-        if (true) {
+        if (false) {
             std::vector<int> foo;
             for (int i = 0; i < 43; i++)
                 foo.push_back(i);
@@ -390,7 +390,7 @@ namespace WowTalentTrees {
                     tree.unspentTalentPoints = item;
 
                     auto t1 = std::chrono::high_resolution_clock::now();
-                    std::unordered_map<std::uint64_t, int> fast_combinations = countConfigurationsFast(tree);
+                    std::vector<std::pair<std::uint64_t, int>> fast_combinations = countConfigurationsFast(tree);
                     auto t2 = std::chrono::high_resolution_clock::now();
                     std::chrono::duration<double, std::milli> ms_double = t2 - t1;
                     std::cout << "Fast operation time: " << ms_double.count() << " ms" << std::endl;
@@ -408,7 +408,7 @@ namespace WowTalentTrees {
                     tree.unspentTalentPoints = i;
 
                     auto t1 = std::chrono::high_resolution_clock::now();
-                    std::unordered_map<std::uint64_t, int> fast_combinations = countConfigurationsFast(tree);
+                    std::vector<std::pair<std::uint64_t, int>> fast_combinations = countConfigurationsFast(tree);
                     auto t2 = std::chrono::high_resolution_clock::now();
                     std::chrono::duration<double, std::milli> ms_double = t2 - t1;
                     std::cout << "Fast operation time: " << ms_double.count() << " ms" << std::endl;
@@ -423,7 +423,7 @@ namespace WowTalentTrees {
                 tree.unspentTalentPoints = points;
 
                 auto t1 = std::chrono::high_resolution_clock::now();
-                std::unordered_map<std::uint64_t, int> fast_combinations = countConfigurationsFast(tree);
+                std::vector<std::pair<std::uint64_t, int>> fast_combinations = countConfigurationsFast(tree);
                 auto t2 = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double, std::milli> ms_double = t2 - t1;
                 std::cout << "Fast operation time: " << ms_double.count() << " ms" << std::endl;
@@ -447,7 +447,7 @@ namespace WowTalentTrees {
         tree.unspentTalentPoints = points;
 
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::vector<std::unordered_map<std::uint64_t, int>> fast_combinations = countConfigurationsFastParallel(tree);
+        std::vector<std::vector<std::pair<std::uint64_t, int>>> fast_combinations = countConfigurationsFastParallel(tree);
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         std::cout << "Fast parallel operation time: " << ms_double.count() << " ms" << std::endl;
@@ -478,7 +478,7 @@ namespace WowTalentTrees {
         std::cout << "Find all configurations with " << tree.unspentTalentPoints << " available talent points!" << std::endl;
 
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::unordered_map<std::uint64_t, int> fast_combinations = countConfigurationsFast(tree);
+        std::vector<std::pair<std::uint64_t, int>> fast_combinations = countConfigurationsFast(tree);
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         std::cout << "Fast operation time: " << ms_double.count() << " ms" << std::endl;
@@ -498,7 +498,7 @@ namespace WowTalentTrees {
         */
 
         std::unordered_set<std::string> slow_combinations;
-        compareCombinations(fast_combinations, slow_combinations);
+        //compareCombinations(fast_combinations, slow_combinations);
     }
 
 
@@ -508,7 +508,7 @@ namespace WowTalentTrees {
     Todo: Create a bulk count algorithm that does not employ early stopping if talent tree can't be filled anymore but keeps track of all sub tree binary indices
     to do all different talent points calculations in a single run
     */
-    std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree) {
+    std::vector<std::pair<std::uint64_t, int>> countConfigurationsFast(TalentTree tree) {
         int talentPoints = tree.unspentTalentPoints;
         //expand notes in tree
         expandTreeTalents(tree);
@@ -519,7 +519,7 @@ namespace WowTalentTrees {
         TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(tree);
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
-        std::unordered_map<std::uint64_t, int> combinations;
+        std::vector<std::pair<std::uint64_t, int>> combinations;
         int allCombinations = 0;
 
         //iterate through all possible combinations in order:
@@ -557,7 +557,7 @@ namespace WowTalentTrees {
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::unordered_map<std::uint64_t, int>& combinations,
+        std::vector<std::pair<std::uint64_t, int>>& combinations,
         int& allCombinations
     ) {
         /*
@@ -573,7 +573,7 @@ namespace WowTalentTrees {
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
         //check if path is complete
         if (talentPointsLeft == 0) {
-            combinations[visitedTalents] = currentMultiplier;
+            combinations.push_back(std::pair<std::uint64_t, int>(visitedTalents, currentMultiplier));
             allCombinations += currentMultiplier;
             return;
         }
@@ -602,7 +602,7 @@ namespace WowTalentTrees {
     Parallel version of fast configuration counting that runs slower for individual Ns (where N is the amount of available talent points and N >= smallest path from top to bottom)
     compared to single N count but includes all combinations for 1 up to N talent points.
     */
-    std::vector<std::unordered_map<std::uint64_t, int>> countConfigurationsFastParallel(TalentTree tree) {
+    std::vector<std::vector<std::pair<std::uint64_t, int>>> countConfigurationsFastParallel(TalentTree tree) {
         int talentPoints = tree.unspentTalentPoints;
         //expand notes in tree
         expandTreeTalents(tree);
@@ -613,7 +613,7 @@ namespace WowTalentTrees {
         TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(tree);
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
-        std::vector<std::unordered_map<std::uint64_t, int>> combinations;
+        std::vector<std::vector<std::pair<std::uint64_t, int>>> combinations;
         combinations.resize(talentPoints);
         std::vector<int> allCombinations;
         allCombinations.resize(talentPoints, 0);
@@ -653,7 +653,7 @@ namespace WowTalentTrees {
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
+        std::vector < std::vector < std::pair< std::uint64_t, int>>> &combinations,
         std::vector<int>& allCombinations
     ) {
         /*
@@ -668,7 +668,7 @@ namespace WowTalentTrees {
         talentPointsLeft -= 1;
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
 
-        combinations[talentPointsSpent - 1][visitedTalents] = currentMultiplier;
+        combinations[talentPointsSpent - 1].push_back(std::pair<std::uint64_t, int>(visitedTalents, currentMultiplier));
         allCombinations[talentPointsSpent - 1] += currentMultiplier;
         if (talentPointsLeft == 0)
             return;
