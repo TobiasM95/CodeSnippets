@@ -13,9 +13,15 @@
 
 
 int main() {
+    auto t1 = std::chrono::high_resolution_clock::now();
+
     //WowTalentTrees::bloodmalletCount(16);
-    WowTalentTrees::individualCombinationCount(30);
-    //WowTalentTrees::parallelCombinationCount(16);
+    WowTalentTrees::individualCombinationCount(-1);
+    //WowTalentTrees::parallelCombinationCount(42);
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+    std::cout << "Final operation time: " << ms_double.count() << " ms" << std::endl;
 }
 
 namespace WowTalentTrees {
@@ -365,7 +371,7 @@ namespace WowTalentTrees {
     }
 
     void individualCombinationCount(int points) {
-        if (false) {
+        if (true) {
             std::vector<int> foo;
             for (int i = 0; i < 43; i++)
                 foo.push_back(i);
@@ -522,15 +528,16 @@ namespace WowTalentTrees {
         std::uint64_t visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
-        std::set<int> possibleTalents;
+        std::vector<int> possibleTalents;
+        possibleTalents.reserve(sortedTreeDAG.minimalTreeDAG.size());
         //add roots to the list of possible talents first, then iterate recursively with visitTalent
         for (auto& root : sortedTreeDAG.rootIndices) {
-            possibleTalents.insert(root);
+            possibleTalents.push_back(root);
         }
-        for (auto& talent : possibleTalents) {
+        for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
-            if (sortedTreeDAG.sortedTalents[talent]->pointsRequired == 0)
-                visitTalent(talent, visitedTalents, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+            if (sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired == 0)
+                visitTalent(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
         std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
 
@@ -544,10 +551,11 @@ namespace WowTalentTrees {
     void visitTalent(
         int talentIndex,
         std::uint64_t visitedTalents,
+        int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::set<int> possibleTalents,
+        std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::unordered_map<std::uint64_t, int>& combinations,
         int& allCombinations
@@ -577,17 +585,18 @@ namespace WowTalentTrees {
         }
         //add all possible children to the set for iteration
         for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-            possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+            insert_into_vector(possibleTalents, sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
         }
         //visit all possible children while keeping correct order
-        for (auto& nextTalent : possibleTalents) {
+        for (int i = currentPosTalIndex; i < possibleTalents.size(); i++) {
             //check if next talent is in right order andn talentPointsSpent is >= next talent points required
-            if (nextTalent > talentIndex &&
-                talentPointsSpent >= sortedTreeDAG.sortedTalents[nextTalent]->pointsRequired) {
-                visitTalent(nextTalent, visitedTalents, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+            if (possibleTalents[i] > talentIndex &&
+                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired) {
+                visitTalent(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
             }
         }
     }
+
 
     /*
     Parallel version of fast configuration counting that runs slower for individual Ns (where N is the amount of available talent points and N >= smallest path from top to bottom)
@@ -615,15 +624,15 @@ namespace WowTalentTrees {
         std::uint64_t visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
-        std::set<int> possibleTalents;
+        std::vector<int> possibleTalents;
         //add roots to the list of possible talents first, then iterate recursively with visitTalent
         for (auto& root : sortedTreeDAG.rootIndices) {
-            possibleTalents.insert(root);
+            possibleTalents.push_back(root);
         }
-        for (auto& talent : possibleTalents) {
+        for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
-            if (sortedTreeDAG.sortedTalents[talent]->pointsRequired == 0)
-                visitTalentParallel(talent, visitedTalents, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+            if (sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired == 0)
+                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
         for (int i = 0; i < talentPoints; i++) {
             std::cout << "Number of configurations for " << i + 1 << " talent points without switch talents: " << combinations[i].size() << " and with : " << allCombinations[i] << std::endl;
@@ -638,10 +647,11 @@ namespace WowTalentTrees {
     void visitTalentParallel(
         int talentIndex,
         std::uint64_t visitedTalents,
+        int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::set<int> possibleTalents,
+        std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
         std::vector<int>& allCombinations
@@ -665,14 +675,14 @@ namespace WowTalentTrees {
 
         //add all possible children to the set for iteration
         for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-            possibleTalents.insert(sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+            insert_into_vector(possibleTalents, sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
         }
         //visit all possible children while keeping correct order
-        for (auto& nextTalent : possibleTalents) {
+        for (int i = currentPosTalIndex; i < possibleTalents.size(); i++) {
             //check order is correct and if talentPointsSpent is >= next talent points required
-            if (nextTalent > talentIndex &&
-                talentPointsSpent >= sortedTreeDAG.sortedTalents[nextTalent]->pointsRequired) {
-                visitTalentParallel(nextTalent, visitedTalents, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+            if (possibleTalents[i] > talentIndex &&
+                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired) {
+                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
             }
         }
     }
@@ -952,6 +962,12 @@ namespace WowTalentTrees {
             visualizeTree(tree, "7points_E2_" + std::to_string(comb));
 
         return getTalentString(tree);
+    }
+
+    void insert_into_vector(std::vector<int>& v, const int& t) {
+        std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end(), t);
+        if (i == v.end() || t < *i)
+            v.insert(i, t);
     }
 
 

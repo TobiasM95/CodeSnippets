@@ -44,10 +44,11 @@ namespace WowTalentTrees {
     void visitTalent(
         int talentIndex,
         std::uint64_t visitedTalents,
+        int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::set<int> possibleTalents,
+        std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::unordered_map<std::uint64_t, int>& combinations,
         int& allCombinations
@@ -55,10 +56,11 @@ namespace WowTalentTrees {
     void visitTalentParallel(
         int talentIndex,
         std::uint64_t visitedTalents,
+        int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::set<int> possibleTalents,
+        std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
         std::vector<int>& allCombinations
@@ -67,7 +69,7 @@ namespace WowTalentTrees {
 
     void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
     std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG);
-
+    void insert_into_vector(std::vector<int>& v, const int& t);
     /***************************************************************************************
     LEGACY CODE
     ORIGINAL AND VERY SLOW VERSION OF A VERY VERBOSE CONFIGURATION COUNT ALGORITHM THAT DIRECTLY ACTS ON TREE OBJECTS
