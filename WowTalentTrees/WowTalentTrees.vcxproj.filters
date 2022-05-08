@@ -18,9 +18,15 @@
     <ClCompile Include="WowTalentTrees.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="BloodmalletCounter.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WowTalentTrees.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="BloodmalletCounter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
