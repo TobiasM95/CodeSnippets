@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
+#include <bitset>
 
 namespace WowTalentTrees {
     enum class TalentType;
@@ -34,8 +35,8 @@ namespace WowTalentTrees {
     void parallelCombinationCount(int points);
     void testground();
 
-    std::vector<std::pair<std::uint64_t, int>> countConfigurationsFast(TalentTree tree);
-    std::vector<std::vector<std::pair<std::uint64_t, int>>> countConfigurationsFastParallel(TalentTree tree);
+    std::vector<std::pair<std::bitset<128>, int>> countConfigurationsFast(TalentTree tree);
+    std::vector<std::vector<std::pair<std::bitset<128>, int>>> countConfigurationsFastParallel(TalentTree tree);
     void expandTreeTalents(TalentTree& tree);
     void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
     void contractTreeTalents(TalentTree& tree);
@@ -43,32 +44,32 @@ namespace WowTalentTrees {
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
     void visitTalent(
         int talentIndex,
-        std::uint64_t visitedTalents,
+        std::bitset<128> visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector<std::pair<std::uint64_t, int>>& combinations,
+        std::vector<std::pair<std::bitset<128>, int>>& combinations,
         int& allCombinations
     );
     void visitTalentParallel(
         int talentIndex,
-        std::uint64_t visitedTalents,
+        std::bitset<128> visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector<std::vector<std::pair<std::uint64_t, int>>>& combinations,
+        std::vector<std::vector<std::pair<std::bitset<128>, int>>>& combinations,
         std::vector<int>& allCombinations
     );
-    inline void setTalent(std::uint64_t& talent, int index);
+    inline void setTalent(std::bitset<128>& talent, int index);
 
-    void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
-    std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG);
+    void compareCombinations(const std::unordered_map<std::bitset<128>, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
+    std::string fillOutTreeWithBinaryIndexToString(std::bitset<128> comb, TalentTree tree, TreeDAGInfo treeDAG);
     void insert_into_vector(std::vector<int>& v, const int& t);
     /***************************************************************************************
     LEGACY CODE
