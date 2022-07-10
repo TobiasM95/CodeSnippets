@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /WowTalentTrees/BS_thread_pool.h
+/WaveFunctionCollapse/test_tilesets
+/WaveFunctionCollapse/imgui.ini
