@@ -38,12 +38,20 @@ namespace WFC {
 
 
         TableContent tableContent = TableContent::ORIGINAL;
-        std::string tilesetPath = "C:\\users\\Tobi\\Documents\\Programming\\CodeSnippets\\WaveFunctionCollapse\\test_tilesets\\kenney_tinyDungeon\\Tiles\\";
+        std::string tilesetPath = "C:\\users\\Tobi\\Documents\\Programming\\CodeSnippets\\WaveFunctionCollapse\\test_tilesets\\circuit_tiles_56\\";
 
         ImageSet imageset;
         int tilesetPreviewSize = 64;
 
-        int socketCount = 1;
+        int socketCount = 5;
+        int borderResolution = 1;
         TileSet tileset;
+
+        bool squareMap = true;
+        int horizontalTileCount = 10;
+        int verticalTileCount = 10;
+        bool symmetricalMap = true;
+
+        std::vector<std::vector<int>> tileMap;
     };
 }

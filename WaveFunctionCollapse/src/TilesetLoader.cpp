@@ -128,7 +128,8 @@ namespace WFC {
 			ImGui::Separator();
 			ImGui::SliderInt("Preview size", &appData.tilesetPreviewSize, 0, 250, "%d", ImGuiSliderFlags_AlwaysClamp);
 			ImGui::Separator();
-			ImGui::SliderInt("Socket count", &appData.socketCount, 0, 50, "%d", 0);
+			ImGui::SliderInt("Socket count", &appData.socketCount, 1, 50, "%d", 0);
+			ImGui::SliderInt("Border resolution", &appData.borderResolution, 1, 255, "%d", ImGuiSliderFlags_AlwaysClamp);
 			if (ImGui::Button("Create adjacency information")) {
 				createAdjacencyInformation(appData);
 			}
@@ -177,6 +178,7 @@ namespace WFC {
 	void createAdjacencyInformation(AppData& appData) {
 		//clear out currently loaded tileset
 		appData.tileset.tiles.clear();
+		appData.tileMap.clear();
 
 		ImageSet& imageSet = appData.imageset;
 		TileSet tileSet;
@@ -231,6 +233,7 @@ namespace WFC {
 				for (int i = 0; i < 3; i++) {
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->width / 2) * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -240,6 +243,7 @@ namespace WFC {
 				for (int i = 0; i < 3; i++) {
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->height / 2) * tile.image->width * 4 + (tile.image->width - 1) * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -249,6 +253,7 @@ namespace WFC {
 				for (int i = 0; i < 3; i++) {
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->height - 1) * tile.image->width * 4 + (tile.image->width / 2) * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -258,6 +263,7 @@ namespace WFC {
 				for (int i = 0; i < 3; i++) {
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->height / 2) * tile.image->width * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -274,6 +280,7 @@ namespace WFC {
 					}
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->width - 1) * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -291,6 +298,7 @@ namespace WFC {
 					}
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->height - 1) * tile.image->width * 4 + (tile.image->width - 1) * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -305,6 +313,7 @@ namespace WFC {
 					}
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->height - 1) * tile.image->width * 4 + (tile.image->width - 1) * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -322,6 +331,7 @@ namespace WFC {
 					}
 					borderColors.push_back(*(tile.image->data.get() + (tile.image->height - 1) * tile.image->width * 4 + i));
 				}
+				roundColors(borderColors, appData.borderResolution);
 				if (!borderIndices.count(borderColors)) {
 					borderIndices[borderColors] = borderIndices.size();
 				}
@@ -354,5 +364,11 @@ namespace WFC {
 			}
 		}
 		return true;
+	}
+
+	void roundColors(std::vector<unsigned char>& borderColors, int borderResolution) {
+		for (int i = 0; i < borderColors.size(); i++) {
+			borderColors[i] = static_cast<int>(borderColors[i] * 1.0 / borderResolution) * borderResolution;
+		}
 	}
 }

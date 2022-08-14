@@ -8,6 +8,16 @@
 #include <bitset>
 
 namespace WowTalentTrees {
+    struct StartPoint {
+        int talentIndex;
+        std::bitset<128> visitedTalents;
+        int currentPosTalIndex;
+        int currentMultiplier;
+        int talentPointsSpent;
+        int talentPointsLeft;
+        std::vector<int> possibleTalents;
+    };
+
     enum class TalentType;
     struct TalentTree;
     struct Talent;
@@ -33,10 +43,12 @@ namespace WowTalentTrees {
     void bloodmalletCount(int points);
     void individualCombinationCount(int points);
     void parallelCombinationCount(int points);
+    void parallelCombinationCountThreaded(int points);
     void testground();
 
     std::vector<std::pair<std::bitset<128>, int>> countConfigurationsFast(TalentTree tree);
     std::vector<std::vector<std::pair<std::bitset<128>, int>>> countConfigurationsFastParallel(TalentTree tree);
+    std::vector<std::vector<std::vector<std::pair<std::bitset<128>, int>>>> countConfigurationsFastParallelThreaded(TalentTree tree);
     void expandTreeTalents(TalentTree& tree);
     void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
     void contractTreeTalents(TalentTree& tree);
@@ -50,7 +62,8 @@ namespace WowTalentTrees {
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<int> possibleTalents,
-        const TreeDAGInfo& sortedTreeDAG,
+        int* mDAG,
+        int* ptsReq,
         std::vector<std::pair<std::bitset<128>, int>>& combinations,
         int& allCombinations
     );
@@ -67,10 +80,15 @@ namespace WowTalentTrees {
         std::vector<int>& allCombinations
     );
     inline void setTalent(std::bitset<128>& talent, int index);
+    std::vector<StartPoint> getStartPoints(const TreeDAGInfo& sortedTreeDAG, int talentPointsLeft, int numThreads);
 
     void compareCombinations(const std::unordered_map<std::bitset<128>, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
     std::string fillOutTreeWithBinaryIndexToString(std::bitset<128> comb, TalentTree tree, TreeDAGInfo treeDAG);
     void insert_into_vector(std::vector<int>& v, const int& t);
+    int* convertMinimalTreeDAGToArray(TreeDAGInfo& DAG);
+    inline int getValueFromMDAGArray(int* arr, int i1, int i2);
+    inline int getConnectionCountFromMDAGArray(int* mDAG, int talentIndex);
+    int* convertMinimalTreeDAGToPtsReqArray(TreeDAGInfo& DAG);
     /***************************************************************************************
     LEGACY CODE
     ORIGINAL AND VERY SLOW VERSION OF A VERY VERBOSE CONFIGURATION COUNT ALGORITHM THAT DIRECTLY ACTS ON TREE OBJECTS

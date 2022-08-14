@@ -13,14 +13,14 @@
 namespace bloodmallet {
 
     struct Talent {
-        std::string name;
-        TalentType type;
-        int requiredPoints;
+        std::string name = "";
+        TalentType type = TalentType::ABILITY;
+        int requiredPoints = 0;
         std::vector<std::string> parentNames;
         std::vector<std::string> childrenNames;
         std::vector<std::string> siblingNames;
 
-        int index;
+        int index = -1;
         std::vector<std::shared_ptr<Talent>> parents;
         std::vector<std::shared_ptr<Talent>> children;
         std::vector<std::shared_ptr<Talent>> siblings;
@@ -486,6 +486,7 @@ namespace bloodmallet {
                         }
                     }
                     catch (std::exception& e) {
+                        std::cout << e.what() << std::endl;
                         continue;
                     }
                 }

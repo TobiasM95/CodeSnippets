@@ -11,13 +11,13 @@
 #include <chrono>
 #include <thread>
 
-
 int main() {
     auto t1 = std::chrono::high_resolution_clock::now();
 
     //WowTalentTrees::bloodmalletCount(16);
-    //WowTalentTrees::individualCombinationCount(-1);
-    WowTalentTrees::parallelCombinationCount(42);
+    //WowTalentTrees::individualCombinationCount(30);
+    //WowTalentTrees::parallelCombinationCount(30);
+    WowTalentTrees::parallelCombinationCountThreaded(30);
 
     auto t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> ms_double = t2 - t1;
@@ -231,7 +231,6 @@ namespace WowTalentTrees {
         return stringSplit;
     }
 
-
     /*
     Visualizes a given tree with graphviz. Needs to be installed and the paths have to exist. Generally not safe to use without careful skimming through it.
     */
@@ -261,7 +260,7 @@ namespace WowTalentTrees {
         f.open(directory + "\\tree_" + tree.name + suffix + ".txt");
         f << output.str();
         f.close();
-
+        
         std::string command = "\"\"C:\\Program Files\\Graphviz\\bin\\dot.exe\" -Tpng \"" + directory + "\\tree_" + tree.name + suffix + ".txt\" -o \"" + directory + "\\tree_" + tree.name + suffix + ".png\"\"";
         system(command.c_str());
     }
@@ -326,6 +325,7 @@ namespace WowTalentTrees {
         case TalentType::ACTIVE: return "square";
         case TalentType::PASSIVE: return "circle";
         case TalentType::SWITCH: return "octagon";
+        default: return "square";
         }
     }
 
@@ -381,12 +381,19 @@ namespace WowTalentTrees {
                 foo.end(),
                 [](auto&& item)
                 {
-                    //do stuff with item
+#ifdef _DEBUG
                     TalentTree tree = parseTree(
                         "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
                         "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
                         "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
                     );
+#else
+                    TalentTree tree = parseTree(
+                        "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1,D1;B2.1:2-A1+C2;B3.1:1-A1+C3,D2;C1.0:1-B1+E1,D1;C2.0:1-B2+D1,D2,E2;C3.0:1-B3+D2,E4,D3;D1.1:2-B1,C1,C2+E1,E2,F2;D2.1:2-B3,C2,C3+E2,F3,E4;D3.1:2-C3+E4;E1.1:3-C1,D1+F1,F2;E2.2:1_0-C2,D1,D2+F2,F3;E4.1:1-C3,D2,D3+F3,F4;"
+                        "F1.1:1-E1+G1,H1;F2.1:2-D1,E1,E2+G1;F3.1:2-D2,E2,E4+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H1,H3;G3.1:1-F3,F4+H3,H4;G4.1:2-F4+H4;H1.2:1_0-F1,G1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G3,G4+I4,I5;"
+                        "I1.1:1-H1+J1;I2.1:1-H1+J1,J3;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3,J5;I5.1:1-H4+J5;J1.2:1_0-I1,I2+;J3.2:1_0-I2,I3,I4+;J5.2:1_0-I4,I5+;"
+                    );
+#endif
                     tree.unspentTalentPoints = item;
 
                     auto t1 = std::chrono::high_resolution_clock::now();
@@ -400,11 +407,19 @@ namespace WowTalentTrees {
             if (points <= 0) {
                 //This snippet runs the configuration count for 1 to 42 available talent points.
                 for (int i = 1; i < 43; i++) {
+#ifdef _DEBUG
                     TalentTree tree = parseTree(
                         "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
                         "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
                         "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
                     );
+#else
+                    TalentTree tree = parseTree(
+                        "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1,D1;B2.1:2-A1+C2;B3.1:1-A1+C3,D2;C1.0:1-B1+E1,D1;C2.0:1-B2+D1,D2,E2;C3.0:1-B3+D2,E4,D3;D1.1:2-B1,C1,C2+E1,E2,F2;D2.1:2-B3,C2,C3+E2,F3,E4;D3.1:2-C3+E4;E1.1:3-C1,D1+F1,F2;E2.2:1_0-C2,D1,D2+F2,F3;E4.1:1-C3,D2,D3+F3,F4;"
+                        "F1.1:1-E1+G1,H1;F2.1:2-D1,E1,E2+G1;F3.1:2-D2,E2,E4+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H1,H3;G3.1:1-F3,F4+H3,H4;G4.1:2-F4+H4;H1.2:1_0-F1,G1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G3,G4+I4,I5;"
+                        "I1.1:1-H1+J1;I2.1:1-H1+J1,J3;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3,J5;I5.1:1-H4+J5;J1.2:1_0-I1,I2+;J3.2:1_0-I2,I3,I4+;J5.2:1_0-I4,I5+;"
+                    );
+#endif
                     tree.unspentTalentPoints = i;
 
                     auto t1 = std::chrono::high_resolution_clock::now();
@@ -415,11 +430,19 @@ namespace WowTalentTrees {
                 }
             }
             else {
+#ifdef _DEBUG
                 TalentTree tree = parseTree(
                     "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
                     "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
                     "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
                 );
+#else
+                TalentTree tree = parseTree(
+                    "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1,D1;B2.1:2-A1+C2;B3.1:1-A1+C3,D2;C1.0:1-B1+E1,D1;C2.0:1-B2+D1,D2,E2;C3.0:1-B3+D2,E4,D3;D1.1:2-B1,C1,C2+E1,E2,F2;D2.1:2-B3,C2,C3+E2,F3,E4;D3.1:2-C3+E4;E1.1:3-C1,D1+F1,F2;E2.2:1_0-C2,D1,D2+F2,F3;E4.1:1-C3,D2,D3+F3,F4;"
+                    "F1.1:1-E1+G1,H1;F2.1:2-D1,E1,E2+G1;F3.1:2-D2,E2,E4+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H1,H3;G3.1:1-F3,F4+H3,H4;G4.1:2-F4+H4;H1.2:1_0-F1,G1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G3,G4+I4,I5;"
+                    "I1.1:1-H1+J1;I2.1:1-H1+J1,J3;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3,J5;I5.1:1-H4+J5;J1.2:1_0-I1,I2+;J3.2:1_0-I2,I3,I4+;J5.2:1_0-I4,I5+;"
+                );
+#endif
                 tree.unspentTalentPoints = points;
 
                 auto t1 = std::chrono::high_resolution_clock::now();
@@ -439,15 +462,46 @@ namespace WowTalentTrees {
     }
 
     void parallelCombinationCount(int points) {
+#ifdef _DEBUG
         TalentTree tree = parseTree(
             "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
             "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
             "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
         );
+#else
+        TalentTree tree = parseTree(
+            "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1,D1;B2.1:2-A1+C2;B3.1:1-A1+C3,D2;C1.0:1-B1+E1,D1;C2.0:1-B2+D1,D2,E2;C3.0:1-B3+D2,E4,D3;D1.1:2-B1,C1,C2+E1,E2,F2;D2.1:2-B3,C2,C3+E2,F3,E4;D3.1:2-C3+E4;E1.1:3-C1,D1+F1,F2;E2.2:1_0-C2,D1,D2+F2,F3;E4.1:1-C3,D2,D3+F3,F4;"
+            "F1.1:1-E1+G1,H1;F2.1:2-D1,E1,E2+G1;F3.1:2-D2,E2,E4+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H1,H3;G3.1:1-F3,F4+H3,H4;G4.1:2-F4+H4;H1.2:1_0-F1,G1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G3,G4+I4,I5;"
+            "I1.1:1-H1+J1;I2.1:1-H1+J1,J3;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3,J5;I5.1:1-H4+J5;J1.2:1_0-I1,I2+;J3.2:1_0-I2,I3,I4+;J5.2:1_0-I4,I5+;"
+        );
+#endif
         tree.unspentTalentPoints = points;
 
         auto t1 = std::chrono::high_resolution_clock::now();
         std::vector<std::vector<std::pair<std::bitset<128>, int>>> fast_combinations = countConfigurationsFastParallel(tree);
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+        std::cout << "Fast parallel operation time: " << ms_double.count() << " ms" << std::endl;
+    }
+
+    void parallelCombinationCountThreaded(int points) {
+#ifdef _DEBUG
+        TalentTree tree = parseTree(
+            "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
+            "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
+            "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
+        );
+#else
+        TalentTree tree = parseTree(
+            "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1,D1;B2.1:2-A1+C2;B3.1:1-A1+C3,D2;C1.0:1-B1+E1,D1;C2.0:1-B2+D1,D2,E2;C3.0:1-B3+D2,E4,D3;D1.1:2-B1,C1,C2+E1,E2,F2;D2.1:2-B3,C2,C3+E2,F3,E4;D3.1:2-C3+E4;E1.1:3-C1,D1+F1,F2;E2.2:1_0-C2,D1,D2+F2,F3;E4.1:1-C3,D2,D3+F3,F4;"
+            "F1.1:1-E1+G1,H1;F2.1:2-D1,E1,E2+G1;F3.1:2-D2,E2,E4+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H1,H3;G3.1:1-F3,F4+H3,H4;G4.1:2-F4+H4;H1.2:1_0-F1,G1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G3,G4+I4,I5;"
+            "I1.1:1-H1+J1;I2.1:1-H1+J1,J3;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3,J5;I5.1:1-H4+J5;J1.2:1_0-I1,I2+;J3.2:1_0-I2,I3,I4+;J5.2:1_0-I4,I5+;"
+        );
+#endif
+        tree.unspentTalentPoints = points;
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        std::vector<std::vector<std::vector<std::pair<std::bitset<128>, int>>>> fast_combinations = countConfigurationsFastParallelThreaded(tree);
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         std::cout << "Fast parallel operation time: " << ms_double.count() << " ms" << std::endl;
@@ -521,6 +575,8 @@ namespace WowTalentTrees {
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
         std::vector<std::pair<std::bitset<128>, int>> combinations;
         int allCombinations = 0;
+        int* mDAG = convertMinimalTreeDAGToArray(sortedTreeDAG);
+        int* ptsReq = convertMinimalTreeDAGToPtsReqArray(sortedTreeDAG);
 
         //iterate through all possible combinations in order:
         //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
@@ -537,10 +593,12 @@ namespace WowTalentTrees {
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired == 0)
-                visitTalent(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+                visitTalent(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, mDAG, ptsReq, combinations, allCombinations);
         }
         std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
 
+        free(mDAG);
+        free(ptsReq);
         return combinations;
     }
 
@@ -556,7 +614,8 @@ namespace WowTalentTrees {
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<int> possibleTalents,
-        const TreeDAGInfo& sortedTreeDAG,
+        int* mDAG,
+        int* ptsReq,
         std::vector<std::pair<std::bitset<128>, int>>& combinations,
         int& allCombinations
     ) {
@@ -570,7 +629,7 @@ namespace WowTalentTrees {
         setTalent(visitedTalents, talentIndex);
         talentPointsSpent += 1;
         talentPointsLeft -= 1;
-        currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
+        currentMultiplier *= getValueFromMDAGArray(mDAG, talentIndex, 0);
         //check if path is complete
         if (talentPointsLeft == 0) {
             combinations.push_back(std::pair<std::bitset<128>, int>(visitedTalents, currentMultiplier));
@@ -579,20 +638,20 @@ namespace WowTalentTrees {
         }
         //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but
         //sorting guarantees that these paths were visited earlier already)
-        if (sortedTreeDAG.sortedTalents.size() - talentIndex - 1 < talentPointsLeft) {
+        if (*mDAG - talentIndex - 1 < talentPointsLeft) {
             //cannot use up all the leftover talent points, therefore incomplete
             return;
         }
         //add all possible children to the set for iteration
-        for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-            insert_into_vector(possibleTalents, sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+        for (int i = 1; i < getConnectionCountFromMDAGArray(mDAG, talentIndex); i++) {
+            insert_into_vector(possibleTalents, getValueFromMDAGArray(mDAG, talentIndex, i));
         }
         //visit all possible children while keeping correct order
         for (int i = currentPosTalIndex; i < possibleTalents.size(); i++) {
             //check if next talent is in right order andn talentPointsSpent is >= next talent points required
             if (possibleTalents[i] > talentIndex &&
-                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired) {
-                visitTalent(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+                talentPointsSpent >= *(ptsReq+possibleTalents[i])) {
+                visitTalent(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, mDAG, ptsReq, combinations, allCombinations);
             }
         }
     }
@@ -623,6 +682,7 @@ namespace WowTalentTrees {
         //weight of combination = factor of 2 for every switch talent in path
         std::bitset<128> visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
+        //std::vector<StartPoint> startPoints = getStartPoints(sortedTreeDAG, talentPointsLeft);
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
         std::vector<int> possibleTalents;
         //add roots to the list of possible talents first, then iterate recursively with visitTalent
@@ -641,6 +701,103 @@ namespace WowTalentTrees {
 
         return combinations;
     }
+
+    /*
+ Parallel version of fast configuration counting that runs slower for individual Ns (where N is the amount of available talent points and N >= smallest path from top to bottom)
+ compared to single N count but includes all combinations for 1 up to N talent points.
+ */
+    std::vector<std::vector<std::vector<std::pair<std::bitset<128>, int>>>> countConfigurationsFastParallelThreaded(TalentTree tree) {
+        int talentPoints = tree.unspentTalentPoints;
+        //expand notes in tree
+        expandTreeTalents(tree);
+        //visualizeTree(tree, "expanded");
+
+        //create sorted DAG (is vector of vector and at most nx(m+1) Array where n = # nodes and m is the max amount of connections a node has to childs and 
+        //+1 because first column contains the weight (1 for regular talents and 2 for switch talents))
+        TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(tree);
+        if (sortedTreeDAG.sortedTalents.size() > 64)
+            throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
+        std::vector<std::vector<std::pair<std::bitset<128>, int>>> combinations;
+        combinations.resize(talentPoints);
+        std::vector<int> allCombinations;
+        allCombinations.resize(talentPoints, 0);
+
+        int talentPointsLeft = tree.unspentTalentPoints;
+        int threadCount = 100;
+        std::vector<StartPoint> startPoints = getStartPoints(sortedTreeDAG, talentPointsLeft, threadCount);
+        std::vector< std::vector<std::vector<std::pair<std::bitset<128>, int>>>> threadCombinations;
+        threadCombinations.resize(startPoints.size(), combinations);
+        std::vector<std::vector<int>> threadAllCombinations;
+        threadAllCombinations.resize(startPoints.size(), allCombinations);
+
+        //iterate through all possible combinations in order:
+        //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
+        //weight of combination = factor of 2 for every switch talent in path
+        int serialTalentPoints = startPoints[0].talentPointsSpent;
+#pragma omp parallel for
+        for (int i = 0; i < startPoints.size(); i++) {
+            std::cout << i << "\n";
+            StartPoint sp = startPoints[i];
+            std::vector<std::vector<std::pair<std::bitset<128>, int>>> tcombinations;
+            tcombinations.resize(talentPoints);
+            std::vector<int> tallCombinations;
+            tallCombinations.resize(talentPoints, 0);
+            visitTalentParallel(sp.talentIndex, sp.visitedTalents, sp.currentPosTalIndex, sp.currentMultiplier, sp.talentPointsSpent, sp.talentPointsLeft, sp.possibleTalents, sortedTreeDAG, tcombinations, tallCombinations);
+            threadCombinations[i] = tcombinations;
+            threadAllCombinations[i] = tallCombinations;
+            std::cout << i << "D\n";
+        }
+
+        std::vector<std::pair<int, int>> result(talentPoints);
+        for (int i = 0; i < talentPoints; i++) {
+            for (int j = 0; j < threadCombinations.size(); j++) {
+                result[i].first += static_cast<int>(threadCombinations[j][i].size());
+                result[i].second += threadAllCombinations[j][i];
+            }
+        }
+        for (int i = 0; i < talentPoints; i++) {
+            std::cout << "Number of configurations for " << i + 1 << " talent points without switch talents: " << result[i].first << " and with : " << result[i].second << std::endl;
+        }
+        return threadCombinations;
+    }
+
+    std::vector<StartPoint> getStartPoints(const TreeDAGInfo& sortedTreeDAG, int talentPointsLeft, int numThreads) {
+        std::deque<StartPoint> spQ;
+
+        std::vector<int> possibleTalents;
+        for (auto& root : sortedTreeDAG.rootIndices) {
+            possibleTalents.push_back(root);
+        }
+        for (int i = 0; i < possibleTalents.size(); i++) {
+            if (sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired == 0) {
+                spQ.push_back({ possibleTalents[i], 0, i + 1, 1, 0, talentPointsLeft, possibleTalents });
+            }
+        }
+
+        while (spQ.size() < numThreads) {
+            StartPoint spQf = spQ.front();
+            spQ.pop_front();
+            setTalent(spQf.visitedTalents, spQf.talentIndex);
+            //add all possible children to the set for iteration
+            for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[spQf.talentIndex].size(); i++) {
+                insert_into_vector(spQf.possibleTalents, sortedTreeDAG.minimalTreeDAG[spQf.talentIndex][i]);
+            }
+            for (int i = static_cast<int>(spQf.possibleTalents.size() - 1); i >= spQf.currentPosTalIndex; i--) {
+                StartPoint spC = {
+                    spQf.possibleTalents[i],
+                    spQf.visitedTalents,
+                    i + 1,
+                    spQf.currentMultiplier * sortedTreeDAG.minimalTreeDAG[spQf.talentIndex][0],
+                    spQf.talentPointsSpent + 1,
+                    spQf.talentPointsLeft - 1,
+                    spQf.possibleTalents
+                };
+                spQ.push_back(spC);
+            }
+        }
+        
+        return {spQ.begin(), spQ.end()};
+    }    
 
     /*
     Parallel version of recursive talent visitation that does not early stop and keeps track of all paths shorter than max path length.
@@ -787,7 +944,7 @@ namespace WowTalentTrees {
             for (auto& talent : talentParts) {
                 t->points += talent->points;
             }
-            t->maxPoints = talentParts.size();
+            t->maxPoints = static_cast<int>(talentParts.size());
             t->talentSwitch = talent->talentSwitch;
             t->parents = talentParts[0]->parents;
             t->children = talentParts[talentParts.size() - 1]->children;
@@ -884,10 +1041,10 @@ namespace WowTalentTrees {
             child_indices[0] = talent->type == TalentType::SWITCH ? 2 : 1;
             for (int i = 0; i < talent->children.size(); i++) {
                 ptrdiff_t pos = std::distance(info.sortedTalents.begin(), std::find(info.sortedTalents.begin(), info.sortedTalents.end(), talent->children[i]));
-                if (pos >= info.sortedTalents.size()) {
+                if (pos >= static_cast<int>(info.sortedTalents.size())) {
                     throw std::logic_error("child does not appear in info.sortedTalents");
                 }
-                child_indices[i + 1] = pos;
+                child_indices[i + 1] = static_cast<int>(pos);
             }
             info.minimalTreeDAG.push_back(child_indices);
         }
@@ -971,7 +1128,52 @@ namespace WowTalentTrees {
             v.insert(i, t);
     }
 
+    int* convertMinimalTreeDAGToArray(TreeDAGInfo& DAG) {
+        auto& mDAG = DAG.minimalTreeDAG;
+        int nodeCount = static_cast<int>(mDAG.size());
+        int connectionCount = 0;
+        for (int i = 0; i < nodeCount; i++) {
+            connectionCount += static_cast<int>(mDAG[i].size());
+        }
+        int* arr = (int*)malloc((nodeCount + connectionCount) * sizeof(int));
+        if (!arr) {
+            return nullptr;
+        }
+        int shift = 0;
+        for (int i = 0; i < nodeCount; i++) {
+            int currShift = static_cast<int>(mDAG[i].size());
+            *(arr + i) = nodeCount + shift;
+            for (int j = 0; j < mDAG[i].size(); j++) {
+                *(arr + nodeCount + shift + j) = mDAG[i][j];
+            }
+            shift += currShift;
+        }
+        return arr;
+    }
 
+    inline int getValueFromMDAGArray(int* arr, int i1, int i2) {
+        return arr[arr[i1] + i2];
+    }
+
+    inline int getConnectionCountFromMDAGArray(int* mDAG, int talentIndex) {
+        if (talentIndex >= (*mDAG) - 1) {
+            //last connection has to have 0 connections but 1 multiplier
+            return 1;
+        }
+        return *(mDAG + talentIndex + 1) - *(mDAG + talentIndex);
+    }
+
+    int* convertMinimalTreeDAGToPtsReqArray(TreeDAGInfo& DAG) {
+        int nodeCount = static_cast<int>(DAG.sortedTalents.size());
+        int* arr = (int*)malloc(nodeCount * sizeof(int));
+        if (!arr) {
+            return arr;
+        }
+        for (int i = 0; i < nodeCount; i++) {
+            *(arr + i) = DAG.sortedTalents[i]->pointsRequired;
+        }
+        return arr;
+    }
 
 
 

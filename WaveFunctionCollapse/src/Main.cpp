@@ -8,6 +8,10 @@
 #include "WFCApp.h"
 #include "DataContainers.h"
 
+//WFCTODO:
+//- Youtube video welches update stack verwendet schauen und code analysieren
+//- Pipe tileset, nicht rotated, nicht mirrored, geht dauernd schief, dort sollte bug existieren, untersuchen
+
 // Data
 static ID3D11Device* g_pd3dDevice = NULL;
 static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;

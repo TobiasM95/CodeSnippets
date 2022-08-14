@@ -28,7 +28,7 @@ namespace WFC {
 
         switch (appData.window) {
         case AppData::Window::TILESET_LOADER: {renderTilesetLoaderWindow(appData); } break;
-        case AppData::Window::WFC_SOLVER: {} break;
+        case AppData::Window::WFC_SOLVER: {renderCollapserWindow(appData); } break;
         }
 	}
 
