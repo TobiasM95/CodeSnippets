@@ -6,6 +6,7 @@
 #include <random>
 #include <numeric>
 #include <atomic>
+#include <mutex>
 
 // settings: 
 // 5 man party or 20 man raid
@@ -131,16 +132,16 @@ constexpr std::array<std::string_view, 21> stratNames{
     "RANDOMFRIENDLY",
     "ONESTACK",
     "ONESTACKENEMYFIRST",
-    "ONESTACKFRIENDLY",
     "ONESTACKENEMY",
+    "ONESTACKFRIENDLY",
     "TWOSTACKS",
     "TWOSTACKSENEMYFIRST",
-    "TWOSTACKSFRIENDLY",
     "TWOSTACKSENEMY",
+    "TWOSTACKSFRIENDLY",
     "THREESTACKS",
     "THREESTACKSENEMYFIRST",
-    "THREESTACKSFRIENDLY",
     "THREESTACKSENEMY",
+    "THREESTACKSFRIENDLY",
     "LOWEST",
     "LOWESTENEMYFIRST",
     "LOWESTENEMY",
@@ -148,21 +149,21 @@ constexpr std::array<std::string_view, 21> stratNames{
 };
 
 struct SimParameters {
-    /*
     float g_splitChance = 0.6f;
     float g_maxDuration = 12.0f;
     float g_cooldown = 25.0f;
     float g_maxTraveltime = 3.0f;
     float simTime = 10000.0f;
     float timeDelta = 0.1f;
-    float simulationSpeed = 0.0f;
+    float simulationSpeed = 1.0f;
     InitialConfiguration initConfig = InitialConfiguration::EMPTY;
 
     TargetStrategy strategy = TargetStrategy::LOWEST;
     int friendCount = 1;
     int enemyCount = 1;
     bool hasCircle = false;
-    */
+    
+    /*
     float g_splitChance = 0.6f;
     float g_maxDuration = 2.0f;
     float g_cooldown = 2.0f;
@@ -176,13 +177,13 @@ struct SimParameters {
     int friendCount = 5;
     int enemyCount = 5;
     bool hasCircle = false;
+    */
 
     bool pauseSim = false;
 };
 
 struct SimData {
-    std::atomic<bool> isBeingFetched = false;
-    std::atomic<bool> isBusy = false;
+    mutable std::mutex m;
 
     bool isRunning = false;
     E_vec group;

@@ -469,6 +469,9 @@ void printStats(size_t friendlyCount, size_t enemyCount, SwarmStats stats, std::
 template<size_t T>
 void exportResults(std::array<SimResult, T>* results) {
     std::filesystem::path resPath = "C:\\Users\\Tobi\\Documents\\Programming\\Small_projects\\wow_swarm_simulator_visualization\\SwarmResults.csv";
+    if (!std::filesystem::is_directory(resPath.parent_path())) {
+        return;
+    }
     std::ofstream outFile{ resPath };
     outFile <<
         "group_size;enemyCount;hasCircle;stratName;"
@@ -501,14 +504,15 @@ void RunRealtimeSim(SimParameters& parameters, SimData& simData) {
     InitializeEntities(simData.group, simData.enemies, simData.entities, parameters.initConfig, parameters);
 
     double cooldown = 0.0;
+    std::unique_lock<std::mutex> lck(simData.m);
+    lck.unlock();
     for (double time = 0; time < parameters.simTime;) {
-        if (parameters.simulationSpeed > 0.0f) {
-            std::this_thread::sleep_for(std::chrono::microseconds(static_cast<long>(parameters.simulationSpeed * parameters.timeDelta * 1000000)));
-        }
-        if (parameters.pauseSim || simData.isBeingFetched.load(std::memory_order_acquire)) {
+        auto targetTime = std::chrono::steady_clock::now() + std::chrono::microseconds(static_cast<long>(parameters.simulationSpeed * parameters.timeDelta * 1000000));
+
+        if (parameters.pauseSim) {
             continue;
         }
-        simData.isBusy.store(true, std::memory_order_release);
+        lck.lock();
         cooldown -= parameters.timeDelta;
         if (cooldown <= 0) {
             cooldown += parameters.g_cooldown;
@@ -520,7 +524,17 @@ void RunRealtimeSim(SimParameters& parameters, SimData& simData) {
         recordSwarmStats(simData.entities, simData.stats);
 
         time += parameters.timeDelta;
-        simData.isBusy.store(false, std::memory_order_release);
+        lck.unlock();
+        if (!simData.isRunning) {
+            break;
+        }
+
+        if (parameters.simulationSpeed > 0.0f) {
+            //std::this_thread::sleep_until(targetTime);
+            while (std::chrono::steady_clock::now() < targetTime) {
+                std::this_thread::yield();
+            }
+        }
     }
 
     simData.isRunning = false;

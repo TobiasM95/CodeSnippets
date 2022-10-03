@@ -121,6 +121,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     bool done = false;
     SimParameters parameters;
     SimData simData;
+    std::unique_lock<std::mutex> lck(simData.m);
+    lck.unlock();
     while (!done)
     {
         // Poll and handle messages (inputs, window resize, etc.)
@@ -146,12 +148,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
         //ImGui::ShowDemoWindow();
         if (simData.isRunning) {
-            while (simData.isBusy.load(std::memory_order_acquire)) {
-
-            };
-            simData.isBeingFetched.store(true, std::memory_order_release);
+            lck.lock();
             renderRealtimeSim(parameters, simData);
-            simData.isBeingFetched.store(false, std::memory_order_release);
+            lck.unlock();
         }
         renderControllerWindow(parameters, simData);
 
