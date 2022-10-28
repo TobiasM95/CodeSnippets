@@ -154,7 +154,7 @@ struct SimParameters {
     float g_cooldown = 25.0f;
     float g_maxTraveltime = 3.0f;
     float simTime = 10000.0f;
-    float timeDelta = 0.1f;
+    float timeDelta = 0.01f;
     float simulationSpeed = 1.0f;
     InitialConfiguration initConfig = InitialConfiguration::EMPTY;
 

@@ -118,7 +118,7 @@ void castSwarm(Entities& entities, std::vector<TravelingSwarm>& travelingSwarms,
         return;
     };
     case TargetStrategy::ONESTACKFRIENDLY: {
-        for (int targetStacks = 2; targetStacks >= 0; targetStacks--) {
+        for (int targetStacks = 1; targetStacks >= 0; targetStacks--) {
             for (int index = 0; index < entities.g_size; index++) {
                 int& stacks = (*entities.group)[index].stacks;
                 if (stacks == targetStacks) {
@@ -389,7 +389,7 @@ void advanceTime(Entities& entities, std::vector<TravelingSwarm>& travelingSwarm
         }
         else {
             Entity& e = entities[it->targetIndex];
-            e.duration = parameters.g_maxDuration;
+            e.duration = parameters.hasCircle ? parameters.g_maxDuration * 0.75f : parameters.g_maxDuration;
             e.stacks = e.stacks + it->stacks > 5 ? 5 : e.stacks + it->stacks;
             it = travelingSwarms.erase(it);
         }
@@ -545,25 +545,25 @@ void RunSim(const SimParameters& parameters)
     constexpr std::array<TargetStrategy, 21> strategies{ 
         TargetStrategy::FOCUSFRIENDLY,
         TargetStrategy::FOCUSENEMY,
-        TargetStrategy::LOWEST,
-        TargetStrategy::LOWESTENEMYFIRST,
-        TargetStrategy::LOWESTENEMY,
-        TargetStrategy::LOWESTFRIENDLY,
         TargetStrategy::RANDOM,
         TargetStrategy::RANDOMENEMY, 
         TargetStrategy::RANDOMFRIENDLY,
         TargetStrategy::ONESTACK,
         TargetStrategy::ONESTACKENEMYFIRST,
-        TargetStrategy::ONESTACKFRIENDLY,
         TargetStrategy::ONESTACKENEMY,
+        TargetStrategy::ONESTACKFRIENDLY,
         TargetStrategy::TWOSTACKS,
         TargetStrategy::TWOSTACKSENEMYFIRST,
-        TargetStrategy::TWOSTACKSFRIENDLY,
         TargetStrategy::TWOSTACKSENEMY,
+        TargetStrategy::TWOSTACKSFRIENDLY,
         TargetStrategy::THREESTACKS,
         TargetStrategy::THREESTACKSENEMYFIRST,
-        TargetStrategy::THREESTACKSFRIENDLY,
         TargetStrategy::THREESTACKSENEMY,
+        TargetStrategy::THREESTACKSFRIENDLY,
+        TargetStrategy::LOWEST,
+        TargetStrategy::LOWESTENEMYFIRST,
+        TargetStrategy::LOWESTENEMY,
+        TargetStrategy::LOWESTFRIENDLY,
     };
 
     constexpr std::array<size_t, 3> friendlyCounts{1, 5, 20};

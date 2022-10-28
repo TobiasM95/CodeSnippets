@@ -16,8 +16,8 @@ int main() {
 
     //WowTalentTrees::bloodmalletCount(16);
     //WowTalentTrees::individualCombinationCount(30);
-    //WowTalentTrees::parallelCombinationCount(30);
-    WowTalentTrees::parallelCombinationCountThreaded(30);
+    WowTalentTrees::parallelCombinationCount(30);
+    //WowTalentTrees::parallelCombinationCountThreaded(30);
 
     auto t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> ms_double = t2 - t1;
@@ -733,7 +733,6 @@ namespace WowTalentTrees {
         //iterate through all possible combinations in order:
         //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
         //weight of combination = factor of 2 for every switch talent in path
-        int serialTalentPoints = startPoints[0].talentPointsSpent;
 #pragma omp parallel for
         for (int i = 0; i < startPoints.size(); i++) {
             std::cout << i << "\n";
@@ -882,7 +881,8 @@ namespace WowTalentTrees {
             talent->index += "_0";
             talent->name += "_0";
             for (auto& child : originalChildren) {
-                talentParts[talent->maxPoints - 1]->children = originalChildren;
+                //talentParts[talent->maxPoints - 1]->children = originalChildren;
+                talentParts[talent->maxPoints - 1]->children.push_back(child);
             }
             for (auto& child : originalChildren) {
                 std::vector<std::shared_ptr<Talent>>::iterator i = std::find(child->parents.begin(), child->parents.end(), talent);
